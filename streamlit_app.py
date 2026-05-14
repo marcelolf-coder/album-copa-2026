@@ -48,7 +48,7 @@ STATUS_OPTIONS = ["faltante", "tenho", "repetida"]
 STATUS_ICON = {"tenho": "🟢", "repetida": "🟡", "faltante": "🔴"}
 STATUS_LABEL = {s: f"{STATUS_ICON[s]} {s}" for s in STATUS_OPTIONS}
 
-COLS_GRID = 4  # colunas no grid de figurinhas
+COLS_GRID = 3  # colunas no grid de figurinhas
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +81,7 @@ def load_df() -> pd.DataFrame:
     )
     df["Status"] = df["Status"].where(df["Status"].isin(STATUS_OPTIONS), "faltante")
     df["Repetidas"] = pd.to_numeric(df.get("Repetidas", 0), errors="coerce").fillna(0).astype(int)
+    df["Descricao"] = df["Descricao"].astype(str)
     # Linha real na planilha (linha 1 = cabeçalho, dados começam em 2)
     df["_row"] = range(2, len(df) + 2)
     return df
@@ -97,6 +98,36 @@ def salvar(updates: list[tuple[int, str, int]]):
     load_df.clear()
 
 
+def _form_figurinha(fig):
+    """Renderiza o formulário de edição de status de uma figurinha."""
+    st.info(f"**{fig['Codigo']}** — {fig['Pais']} / {fig['Descricao']}")
+
+    novo_status = st.radio(
+        "Status:",
+        STATUS_OPTIONS,
+        index=STATUS_OPTIONS.index(fig["Status"]),
+        horizontal=True,
+        format_func=lambda s: STATUS_LABEL[s],
+        key=f"radio_{fig['Codigo']}",
+    )
+
+    novas_reps = int(fig["Repetidas"])
+    if novo_status == "repetida":
+        novas_reps = st.number_input(
+            "Cópias extras (para troca):",
+            min_value=1,
+            value=max(1, novas_reps),
+            step=1,
+            key=f"reps_{fig['Codigo']}",
+        )
+
+    if st.button("✅ Salvar", type="primary", use_container_width=True, key=f"btn_{fig['Codigo']}"):
+        with st.spinner("Salvando..."):
+            salvar([(int(fig["_row"]), novo_status, int(novas_reps))])
+        st.success(f"**{fig['Codigo']}** → {STATUS_LABEL[novo_status]}")
+        st.rerun()
+
+
 # ---------------------------------------------------------------------------
 # Impressão A4
 # ---------------------------------------------------------------------------
@@ -108,11 +139,14 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame) -> str:
 
     blocos_falt = []
     for pais, grupo in faltantes.groupby("Pais", sort=True):
-        codigos = ", ".join(grupo["Codigo"].astype(str).tolist())
+        linhas = "\n".join(
+            f"{r['Codigo']} — {r['Descricao']}"
+            for _, r in grupo.iterrows()
+        )
         blocos_falt.append(
             f'<div class="pais">'
             f'<div class="pais-nome">{pais} ({len(grupo)})</div>'
-            f'<div class="codigos">{codigos}</div>'
+            f'<div class="codigos">{linhas}</div>'
             f'</div>'
         )
     grid_falt = "\n".join(blocos_falt) if blocos_falt else "<p>Nenhuma figurinha faltando!</p>"
@@ -122,8 +156,8 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame) -> str:
         for _, fig in grupo.iterrows():
             extras = int(fig["Repetidas"])
             sufixo = f" +{extras}x" if extras > 0 else ""
-            linhas_rep.append(f"{fig['Codigo']}{sufixo}")
-    grid_rep = ", ".join(linhas_rep) if linhas_rep else "Nenhuma figurinha para trocar."
+            linhas_rep.append(f"{fig['Codigo']} — {fig['Descricao']}{sufixo}")
+    grid_rep = "<br>".join(linhas_rep) if linhas_rep else "Nenhuma figurinha para trocar."
 
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
@@ -142,7 +176,7 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame) -> str:
   .pais {{ break-inside: avoid; border: 0.3mm solid #ccc; border-radius: 1.5mm;
            padding: 1.5mm 2mm; }}
   .pais-nome {{ font-weight: bold; font-size: 7.5pt; margin-bottom: 0.8mm; }}
-  .codigos {{ font-size: 7pt; color: #333; line-height: 1.4; }}
+  .codigos {{ font-size: 7pt; color: #333; line-height: 1.5; white-space: pre-line; }}
   .page-break {{ page-break-after: always; height: 0; }}
   .rep-box {{ border: 0.3mm solid #ccc; border-radius: 1.5mm; padding: 3mm 4mm;
               font-size: 8pt; line-height: 1.8; }}
@@ -246,7 +280,6 @@ with tab_time:
 
     time_df = time_df.reset_index(drop=True)
 
-    # Progresso do time
     tenho_time = time_df["Status"].isin(["tenho", "repetida"]).sum()
     st.caption(f"{tenho_time}/{len(time_df)} figurinhas deste time")
 
@@ -270,6 +303,9 @@ with tab_time:
                     key=key,
                     format_func=lambda s: STATUS_ICON[s],
                 )
+                nome = fig["Descricao"]
+                if nome and nome not in ("nan", fig["Codigo"]):
+                    st.caption(nome)
                 if novo != fig["Status"]:
                     alteracoes[int(fig["_row"])] = (novo, int(fig["Repetidas"]))
 
@@ -285,50 +321,47 @@ with tab_time:
         st.info("Altere o ícone de alguma figurinha para habilitar o salvar.")
 
 
-# ── Busca Rápida ─────────────────────────────────────────────────────────────
+# ── Busca ────────────────────────────────────────────────────────────────────
 with tab_busca:
-    st.subheader("Atualizar figurinha")
-    st.caption("Digite o código (ex: BRA5, FWC3, ARG1) e marque o status.")
+    st.subheader("Buscar figurinha")
+    st.caption("Digite o código (ex: BRA5) ou parte do nome do jogador (ex: Messi, Vini).")
 
     df = load_df()
 
-    codigo = st.text_input(
-        "Código",
-        placeholder="BRA5",
-        max_chars=8,
+    query = st.text_input(
+        "Busca",
+        placeholder="BRA5 ou Vinícius",
         label_visibility="collapsed",
-    ).strip().upper()
+    ).strip()
 
-    if codigo:
-        match = df[df["Codigo"] == codigo]
-        if match.empty:
-            st.error(f"Código **{codigo}** não encontrado. Verifique o código no álbum.")
+    if query:
+        q_upper = query.upper()
+
+        # 1. Tenta código exato
+        match_codigo = df[df["Codigo"] == q_upper]
+
+        if not match_codigo.empty:
+            resultados = match_codigo
         else:
-            fig = match.iloc[0]
-            st.info(f"**{fig['Codigo']}** — {fig['Pais']} / {fig['Descricao']}")
+            # 2. Busca por nome (parcial, case-insensitive)
+            mask = df["Descricao"].str.contains(query, case=False, na=False)
+            resultados = df[mask]
 
-            novo_status = st.radio(
-                "Status:",
-                STATUS_OPTIONS,
-                index=STATUS_OPTIONS.index(fig["Status"]),
-                horizontal=True,
-                format_func=lambda s: STATUS_LABEL[s],
+        if resultados.empty:
+            st.error(f"Nenhuma figurinha encontrada para **{query}**.")
+        elif len(resultados) == 1:
+            _form_figurinha(resultados.iloc[0])
+        else:
+            opcoes_label = [
+                f"{r['Codigo']} — {r['Descricao']} ({r['Pais']})"
+                for _, r in resultados.iterrows()
+            ]
+            escolha_idx = st.selectbox(
+                f"{len(resultados)} figurinhas encontradas — selecione:",
+                range(len(opcoes_label)),
+                format_func=lambda i: opcoes_label[i],
             )
-
-            novas_reps = int(fig["Repetidas"])
-            if novo_status == "repetida":
-                novas_reps = st.number_input(
-                    "Cópias extras (para troca):",
-                    min_value=1,
-                    value=max(1, novas_reps),
-                    step=1,
-                )
-
-            if st.button("✅ Salvar", type="primary", use_container_width=True):
-                with st.spinner("Salvando..."):
-                    salvar([(int(fig["_row"]), novo_status, int(novas_reps))])
-                st.success(f"**{codigo}** → {STATUS_LABEL[novo_status]}")
-                st.rerun()
+            _form_figurinha(resultados.iloc[escolha_idx])
 
 
 # ── Listas ───────────────────────────────────────────────────────────────────
@@ -337,7 +370,6 @@ with tab_listas:
     faltantes = df[df["Status"] == "faltante"]
     repetidas = df[df["Status"] == "repetida"]
 
-    # Botão de download do HTML para impressão (gerado uma vez para ambas as listas)
     html_bytes = _html_impressao(faltantes, repetidas).encode("utf-8")
     nome_arquivo = f"album_copa2026_{datetime.date.today().strftime('%Y%m%d')}.html"
     st.download_button(
@@ -360,9 +392,12 @@ with tab_listas:
             st.success("Album completo! 🏆")
         else:
             for pais, grupo in faltantes.groupby("Pais", sort=True):
-                codigos = ", ".join(grupo["Codigo"].astype(str).tolist())
+                linhas = "\n".join(
+                    f"{r['Codigo']} — {r['Descricao']}"
+                    for _, r in grupo.iterrows()
+                )
                 with st.expander(f"{pais} — {len(grupo)} faltando"):
-                    st.code(codigos, language=None)
+                    st.code(linhas, language=None)
 
     with sub_rep:
         st.caption(f"{len(repetidas)} tipos de figurinhas repetidas")
@@ -374,7 +409,7 @@ with tab_listas:
             for _, fig in repetidas.iterrows():
                 extras = int(fig["Repetidas"])
                 sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
-                linhas.append(f"{fig['Codigo']} — {fig['Pais']}{sufixo}")
+                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({fig['Pais']}){sufixo}")
 
             st.code("\n".join(linhas), language=None)
             st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
