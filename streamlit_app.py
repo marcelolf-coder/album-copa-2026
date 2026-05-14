@@ -16,10 +16,13 @@ Secrets necessários:
 import datetime
 import json
 import os
+import re
 
 import gspread
+import numpy as np
 import pandas as pd
 import streamlit as st
+from PIL import Image, ImageEnhance, ImageFilter
 
 st.set_page_config(
     page_title="Album Copa 2026",
@@ -207,11 +210,56 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame) -> str:
 
 
 # ---------------------------------------------------------------------------
+# OCR
+# ---------------------------------------------------------------------------
+
+@st.cache_resource
+def get_ocr():
+    from rapidocr_onnxruntime import RapidOCR
+    return RapidOCR()
+
+
+_CODIGO_RE = re.compile(
+    r'\b(FWC|ALG|ARG|AUS|AUT|BEL|BIH|BRA|CAN|CIV|COD|COL|CPV|CRO|CUW|CZE|'
+    r'ECU|EGY|ENG|ESP|FRA|GER|GHA|HAI|IRN|IRQ|JOR|JPN|KOR|KSA|MAR|MEX|NED|'
+    r'NOR|NZL|PAN|PAR|POR|QAT|RSA|SCO|SEN|SUI|SWE|TUN|TUR|URU|USA|UZB)\s*(\d{1,2})\b',
+    re.IGNORECASE,
+)
+
+
+def _pre_processar(img: Image.Image) -> np.ndarray:
+    img = img.convert("L")                          # escala de cinza
+    img = img.filter(ImageFilter.SHARPEN)
+    img = ImageEnhance.Contrast(img).enhance(2.0)
+    img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
+    return np.array(img.convert("RGB"))
+
+
+def _extrair_codigos(foto: Image.Image, codigos_validos: set) -> list[str]:
+    arr = _pre_processar(foto)
+    ocr = get_ocr()
+    resultado, _ = ocr(arr)
+    if not resultado:
+        return []
+
+    encontrados = []
+    for _, texto, confianca in resultado:
+        if confianca < 0.5:
+            continue
+        texto_limpo = texto.strip().upper().replace(" ", "")
+        for m in _CODIGO_RE.finditer(texto_limpo):
+            codigo = m.group(1).upper() + m.group(2)
+            if codigo in codigos_validos:
+                encontrados.append(codigo)
+    return list(dict.fromkeys(encontrados))  # sem duplicatas, mantém ordem
+
+
+# ---------------------------------------------------------------------------
 # Abas
 # ---------------------------------------------------------------------------
 
-tab_resumo, tab_time, tab_busca, tab_listas = st.tabs(
-    ["📊 Resumo", "🏳️ Por Time", "🔍 Busca", "📋 Listas"]
+tab_resumo, tab_time, tab_busca, tab_scanner, tab_listas = st.tabs(
+    ["📊 Resumo", "🏳️ Por Time", "🔍 Busca", "📷 Scanner", "📋 Listas"]
 )
 
 
@@ -362,6 +410,55 @@ with tab_busca:
                 format_func=lambda i: opcoes_label[i],
             )
             _form_figurinha(resultados.iloc[escolha_idx])
+
+
+# ── Scanner ──────────────────────────────────────────────────────────────────
+with tab_scanner:
+    st.subheader("Scanner de figurinha")
+    st.caption("Fotografe o código impresso na figurinha (ex: BRA5). Mantenha boa iluminação.")
+
+    df = load_df()
+    codigos_validos = set(df["Codigo"].tolist())
+
+    foto = st.camera_input("Apontar câmera para o código da figurinha")
+
+    if foto:
+        with st.spinner("Lendo código..."):
+            img = Image.open(foto)
+            encontrados = _extrair_codigos(img, codigos_validos)
+
+        if not encontrados:
+            st.error("Nenhum código reconhecido. Tente com mais luz ou mais perto do código.")
+        else:
+            codigo_lido = encontrados[0]
+            if len(encontrados) > 1:
+                codigo_lido = st.selectbox(
+                    "Mais de um código detectado — confirme qual é:",
+                    encontrados,
+                )
+
+            fig = df[df["Codigo"] == codigo_lido].iloc[0]
+            st.success(f"Código detectado: **{fig['Codigo']}**")
+            st.info(f"**{fig['Codigo']}** — {fig['Pais']} / {fig['Descricao']}")
+            st.caption(f"Status atual: {STATUS_LABEL[fig['Status']]}")
+
+            st.divider()
+            st.write("**Confirmar como:**")
+            c1, c2 = st.columns(2)
+
+            with c1:
+                if st.button("🟢 Tenho", use_container_width=True, key="scan_tenho"):
+                    reps = int(fig["Repetidas"])
+                    salvar([(int(fig["_row"]), "tenho", reps)])
+                    st.success(f"{fig['Codigo']} marcado como **tenho**!")
+                    st.rerun()
+
+            with c2:
+                if st.button("🟡 Repetida", use_container_width=True, key="scan_rep"):
+                    reps = max(1, int(fig["Repetidas"]) + 1)
+                    salvar([(int(fig["_row"]), "repetida", reps)])
+                    st.success(f"{fig['Codigo']} marcado como **repetida** ({reps}x)!")
+                    st.rerun()
 
 
 # ── Listas ───────────────────────────────────────────────────────────────────
