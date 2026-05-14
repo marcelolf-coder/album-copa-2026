@@ -1,4 +1,4 @@
-﻿"""
+"""
 Album Panini — Copa do Mundo 2026
 Web app mobile-friendly via Streamlit.
 
@@ -13,6 +13,7 @@ Secrets necessários:
   client_email = "..."
   ... (cole o JSON da service account aqui)
 """
+import datetime
 import json
 import os
 
@@ -94,6 +95,81 @@ def salvar(updates: list[tuple[int, str, int]]):
         cells.append(gspread.Cell(row, 5, str(reps)))
     ws.update_cells(cells, value_input_option="RAW")
     load_df.clear()
+
+
+# ---------------------------------------------------------------------------
+# Impressão A4
+# ---------------------------------------------------------------------------
+
+def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame) -> str:
+    hoje = datetime.date.today().strftime("%d/%m/%Y")
+    total_f = len(faltantes)
+    total_r = len(repetidas)
+
+    blocos_falt = []
+    for pais, grupo in faltantes.groupby("Pais", sort=True):
+        codigos = ", ".join(grupo["Codigo"].astype(str).tolist())
+        blocos_falt.append(
+            f'<div class="pais">'
+            f'<div class="pais-nome">{pais} ({len(grupo)})</div>'
+            f'<div class="codigos">{codigos}</div>'
+            f'</div>'
+        )
+    grid_falt = "\n".join(blocos_falt) if blocos_falt else "<p>Nenhuma figurinha faltando!</p>"
+
+    linhas_rep = []
+    for pais, grupo in repetidas.groupby("Pais", sort=True):
+        for _, fig in grupo.iterrows():
+            extras = int(fig["Repetidas"])
+            sufixo = f" +{extras}x" if extras > 0 else ""
+            linhas_rep.append(f"{fig['Codigo']}{sufixo}")
+    grid_rep = ", ".join(linhas_rep) if linhas_rep else "Nenhuma figurinha para trocar."
+
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Album Copa 2026 - Impressao</title>
+<style>
+  @page {{ size: A4 portrait; margin: 12mm; }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: Arial, sans-serif; font-size: 8.5pt; color: #111; }}
+  h1 {{ font-size: 13pt; text-align: center; margin-bottom: 2mm; }}
+  .meta {{ text-align: center; font-size: 7.5pt; color: #555; margin-bottom: 5mm; }}
+  h2 {{ font-size: 10pt; background: #eee; padding: 1.5mm 2mm; margin: 4mm 0 3mm;
+        border-left: 3px solid #333; }}
+  .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }}
+  .pais {{ break-inside: avoid; border: 0.3mm solid #ccc; border-radius: 1.5mm;
+           padding: 1.5mm 2mm; }}
+  .pais-nome {{ font-weight: bold; font-size: 7.5pt; margin-bottom: 0.8mm; }}
+  .codigos {{ font-size: 7pt; color: #333; line-height: 1.4; }}
+  .page-break {{ page-break-after: always; height: 0; }}
+  .rep-box {{ border: 0.3mm solid #ccc; border-radius: 1.5mm; padding: 3mm 4mm;
+              font-size: 8pt; line-height: 1.8; }}
+  .footer {{ margin-top: 6mm; text-align: center; font-size: 7pt; color: #888; }}
+</style>
+</head>
+<body>
+
+<h1>&#9917; Album Copa do Mundo 2026</h1>
+<p class="meta">Gerado em {hoje} &bull; {total_f} faltantes &bull; {total_r} tipos para trocar</p>
+
+<h2>&#10060; Figurinhas Faltantes &mdash; {total_f} figurinhas</h2>
+<div class="grid">
+{grid_falt}
+</div>
+
+<div class="page-break"></div>
+
+<h1>&#9917; Album Copa do Mundo 2026</h1>
+<p class="meta">Gerado em {hoje}</p>
+
+<h2>&#128260; Para Trocar &mdash; {total_r} tipos</h2>
+<div class="rep-box">{grid_rep}</div>
+
+<p class="footer">Abra no navegador e pressione Ctrl+P para imprimir em A4</p>
+</body>
+</html>"""
 
 
 # ---------------------------------------------------------------------------
@@ -258,11 +334,26 @@ with tab_busca:
 # ── Listas ───────────────────────────────────────────────────────────────────
 with tab_listas:
     df = load_df()
+    faltantes = df[df["Status"] == "faltante"]
+    repetidas = df[df["Status"] == "repetida"]
+
+    # Botão de download do HTML para impressão (gerado uma vez para ambas as listas)
+    html_bytes = _html_impressao(faltantes, repetidas).encode("utf-8")
+    nome_arquivo = f"album_copa2026_{datetime.date.today().strftime('%Y%m%d')}.html"
+    st.download_button(
+        label="🖨️ Baixar para impressão (A4)",
+        data=html_bytes,
+        file_name=nome_arquivo,
+        mime="text/html",
+        use_container_width=True,
+    )
+    st.caption("Abra o arquivo baixado no navegador e pressione Ctrl+P para imprimir.")
+
+    st.divider()
 
     sub_falt, sub_rep = st.tabs(["❌ Faltantes", "🔄 Para trocar"])
 
     with sub_falt:
-        faltantes = df[df["Status"] == "faltante"]
         st.caption(f"{len(faltantes)} figurinhas faltando")
 
         if faltantes.empty:
@@ -274,7 +365,6 @@ with tab_listas:
                     st.code(codigos, language=None)
 
     with sub_rep:
-        repetidas = df[df["Status"] == "repetida"]
         st.caption(f"{len(repetidas)} tipos de figurinhas repetidas")
 
         if repetidas.empty:
