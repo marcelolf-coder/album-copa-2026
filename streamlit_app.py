@@ -1,4 +1,4 @@
-"""
+﻿"""
 Album Panini — Copa do Mundo 2026
 Web app mobile-friendly via Streamlit.
 
@@ -132,7 +132,7 @@ with tab_resumo:
 
     times_df = df[~(df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00"))]
     stats = (
-        times_df.groupby("País")["Status"]
+        times_df.groupby("Pais")["Status"]
         .apply(lambda s: pd.Series({
             "Tenho": s.isin(["tenho", "repetida"]).sum(),
             "Total": len(s),
@@ -145,7 +145,7 @@ with tab_resumo:
     stats = stats.sort_values("Tenho", ascending=False)
 
     st.dataframe(
-        stats[["País", "Progresso", "✅"]],
+        stats[["Pais", "Progresso", "✅"]],
         use_container_width=True,
         hide_index=True,
         column_config={"✅": st.column_config.CheckboxColumn(disabled=True)},
@@ -157,7 +157,7 @@ with tab_time:
     df = load_df()
 
     paises = sorted(
-        df[~(df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00"))]["País"].unique()
+        df[~(df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00"))]["Pais"].unique()
     )
     opcoes = ["⭐ FIFA World Cup 2026 (FWC)"] + list(paises)
 
@@ -166,7 +166,7 @@ with tab_time:
     if escolha.startswith("⭐"):
         time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
     else:
-        time_df = df[df["País"] == escolha].copy()
+        time_df = df[df["Pais"] == escolha].copy()
 
     time_df = time_df.reset_index(drop=True)
 
@@ -229,7 +229,7 @@ with tab_busca:
             st.error(f"Código **{codigo}** não encontrado. Verifique o código no álbum.")
         else:
             fig = match.iloc[0]
-            st.info(f"**{fig['Codigo']}** — {fig['País']} / {fig['Descrição']}")
+            st.info(f"**{fig['Codigo']}** — {fig['Pais']} / {fig['Descricao']}")
 
             novo_status = st.radio(
                 "Status:",
@@ -268,7 +268,7 @@ with tab_listas:
         if faltantes.empty:
             st.success("Album completo! 🏆")
         else:
-            for pais, grupo in faltantes.groupby("País", sort=True):
+            for pais, grupo in faltantes.groupby("Pais", sort=True):
                 codigos = ", ".join(grupo["Codigo"].tolist())
                 with st.expander(f"{pais} — {len(grupo)} faltando"):
                     st.code(codigos, language=None)
@@ -284,7 +284,7 @@ with tab_listas:
             for _, fig in repetidas.iterrows():
                 extras = int(fig["Repetidas"])
                 sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
-                linhas.append(f"{fig['Codigo']} — {fig['País']}{sufixo}")
+                linhas.append(f"{fig['Codigo']} — {fig['Pais']}{sufixo}")
 
             st.code("\n".join(linhas), language=None)
             st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
