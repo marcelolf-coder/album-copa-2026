@@ -269,7 +269,7 @@ with tab_listas:
             st.success("Album completo! 🏆")
         else:
             for pais, grupo in faltantes.groupby("Pais", sort=True):
-                codigos = ", ".join(grupo["Codigo"].tolist())
+                codigos = ", ".join(grupo["Codigo"].astype(str).tolist())
                 with st.expander(f"{pais} — {len(grupo)} faltando"):
                     st.code(codigos, language=None)
 
