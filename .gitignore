@@ -1,0 +1,17 @@
+# Credenciais — nunca subir para o GitHub
+credentials.json
+token.json
+service_account.json
+sheet_config.json
+
+# Dados pessoais do álbum — ficam só local
+album.csv
+album_impressao.html
+
+# Scripts de atualização em lote
+_atualizar_*.py
+
+# Python
+__pycache__/
+*.pyc
+.env
