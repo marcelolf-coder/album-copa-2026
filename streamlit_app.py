@@ -33,32 +33,46 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── Copa 2026 theme ── */
-.stApp, [data-testid="stAppViewContainer"] {
+/* ── Copa 2026: sobrescreve variáveis CSS raiz do Streamlit ── */
+:root {
+    --primary-color: #1E40AF !important;
+    --background-color: #FFFFFF !important;
+    --secondary-background-color: #EFF6FF !important;
+    --text-color: #1E293B !important;
+}
+
+html, body { background-color: #FFFFFF !important; color: #1E293B !important; }
+
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > section,
+[data-testid="block-container"] {
     background-color: #FFFFFF !important;
     color: #1E293B !important;
 }
-[data-testid="stHeader"] { background-color: #FFFFFF !important; }
-[data-testid="stSidebar"] { background-color: #EFF6FF !important; }
-section[data-testid="stSidebar"] > div { background-color: #EFF6FF !important; }
+
+[data-testid="stHeader"] { background-color: #FFFFFF !important; border-bottom: 1px solid #E2E8F0; }
+[data-testid="stSidebar"], section[data-testid="stSidebar"] > div {
+    background-color: #EFF6FF !important;
+}
 
 /* Botões primários */
-.stButton > button[kind="primary"],
-button[data-testid="baseButton-primary"] {
+button[data-testid="baseButton-primary"],
+.stButton > button[kind="primary"] {
     background-color: #1E40AF !important;
     border-color: #1E40AF !important;
     color: #FFFFFF !important;
-    font-size: 1rem;
-    padding: 0.6rem;
+    font-size: 1rem !important;
+    padding: 0.6rem !important;
 }
-.stButton > button[kind="primary"]:hover,
-button[data-testid="baseButton-primary"]:hover {
+button[data-testid="baseButton-primary"]:hover,
+.stButton > button[kind="primary"]:hover {
     background-color: #1E3A8A !important;
     border-color: #1E3A8A !important;
 }
 
 /* Barra de progresso */
-[data-testid="stProgressBar"] > div { background-color: #EFF6FF !important; }
+[data-testid="stProgressBar"] > div { background-color: #DBEAFE !important; }
 [data-testid="stProgressBar"] > div > div { background-color: #1E40AF !important; }
 
 /* Tabs */
@@ -70,14 +84,12 @@ button[data-baseweb="tab"][aria-selected="true"] {
 
 /* Métricas */
 div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #1E293B !important; }
-div[data-testid="stMetricLabel"] { color: #475569 !important; }
 
-/* Grid compacto */
+/* Grid */
 div[data-testid="column"] { padding: 0 2px !important; }
 div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; }
 div[data-testid="stSelectbox"] div { font-size: 0.75rem !important; }
 
-/* Links */
 a { color: #1E40AF !important; }
 </style>
 """, unsafe_allow_html=True)
