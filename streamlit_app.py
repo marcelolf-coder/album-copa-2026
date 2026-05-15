@@ -33,89 +33,91 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* Aumenta métricas */
 div[data-testid="stMetricValue"] { font-size: 2rem !important; }
-/* Compacta colunas do grid */
 div[data-testid="column"] { padding: 0 2px !important; }
-/* Selectbox menor */
 div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; }
 div[data-testid="stSelectbox"] div { font-size: 0.75rem !important; }
-/* Tabs com scroll em telas pequenas */
-div[data-testid="stTabs"] > div:first-child { overflow-x: auto; }
-/* Botão primário ocupa largura total */
+div[data-testid="stTabs"] > div:first-child { overflow-x: auto; white-space: nowrap; }
 .stButton > button[kind="primary"] { font-size: 1rem; padding: 0.6rem; }
 </style>
 """, unsafe_allow_html=True)
 
-STATUS_OPTIONS = ["faltante", "tenho", "repetida"]
+# ---------------------------------------------------------------------------
+# Constantes
+# ---------------------------------------------------------------------------
 
-PAIS_ISO2 = {
-    "México": "mx", "África do Sul": "za", "Coreia do Sul": "kr",
-    "Tchéquia": "cz", "Canadá": "ca", "Bósnia e Herzegovina": "ba",
-    "Catar": "qa", "Suíça": "ch", "Brasil": "br", "Marrocos": "ma",
-    "Haiti": "ht", "Escócia": "gb-sct", "EUA": "us", "Paraguai": "py",
-    "Austrália": "au", "Turquia": "tr", "Alemanha": "de", "Curaçao": "cw",
-    "Costa do Marfim": "ci", "Equador": "ec", "Países Baixos": "nl",
-    "Japão": "jp", "Suécia": "se", "Tunísia": "tn", "Bélgica": "be",
-    "Egito": "eg", "Irã": "ir", "Nova Zelândia": "nz", "Espanha": "es",
-    "Cabo Verde": "cv", "Arábia Saudita": "sa", "Uruguai": "uy",
-    "França": "fr", "Senegal": "sn", "Iraque": "iq", "Noruega": "no",
-    "Argentina": "ar", "Argélia": "dz", "Áustria": "at", "Jordânia": "jo",
-    "Portugal": "pt", "Congo RD": "cd", "Uzbequistão": "uz",
-    "Colômbia": "co", "Inglaterra": "gb-eng", "Croácia": "hr",
-    "Gana": "gh", "Panamá": "pa",
+STATUS_OPTIONS = ["faltante", "tenho", "repetida"]
+STATUS_ICON = {"tenho": "🟢", "repetida": "🟡", "faltante": "🔴"}
+STATUS_LABEL = {s: f"{STATUS_ICON[s]} {s}" for s in STATUS_OPTIONS}
+COLS_GRID = 3
+
+BANDEIRAS = {
+    "México": "🇲🇽", "África do Sul": "🇿🇦", "Coreia do Sul": "🇰🇷",
+    "Tchéquia": "🇨🇿", "Canadá": "🇨🇦", "Bósnia e Herzegovina": "🇧🇦",
+    "Catar": "🇶🇦", "Suíça": "🇨🇭", "Brasil": "🇧🇷", "Marrocos": "🇲🇦",
+    "Haiti": "🇭🇹", "Escócia": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "EUA": "🇺🇸", "Paraguai": "🇵🇾",
+    "Austrália": "🇦🇺", "Turquia": "🇹🇷", "Alemanha": "🇩🇪", "Curaçao": "🇨🇼",
+    "Costa do Marfim": "🇨🇮", "Equador": "🇪🇨", "Países Baixos": "🇳🇱",
+    "Japão": "🇯🇵", "Suécia": "🇸🇪", "Tunísia": "🇹🇳", "Bélgica": "🇧🇪",
+    "Egito": "🇪🇬", "Irã": "🇮🇷", "Nova Zelândia": "🇳🇿", "Espanha": "🇪🇸",
+    "Cabo Verde": "🇨🇻", "Arábia Saudita": "🇸🇦", "Uruguai": "🇺🇾",
+    "França": "🇫🇷", "Senegal": "🇸🇳", "Iraque": "🇮🇶", "Noruega": "🇳🇴",
+    "Argentina": "🇦🇷", "Argélia": "🇩🇿", "Áustria": "🇦🇹", "Jordânia": "🇯🇴",
+    "Portugal": "🇵🇹", "Congo RD": "🇨🇩", "Uzbequistão": "🇺🇿",
+    "Colômbia": "🇨🇴", "Inglaterra": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Croácia": "🇭🇷",
+    "Gana": "🇬🇭", "Panamá": "🇵🇦",
 }
+
+PAIS_ALIAS = {
+    "HOLANDA": "Países Baixos", "HOLLAND": "Países Baixos",
+    "NETHERLANDS": "Países Baixos", "PAÍSES BAIXOS": "Países Baixos",
+    "PAISES BAIXOS": "Países Baixos",
+    "COREIA": "Coreia do Sul", "KOREA": "Coreia do Sul",
+    "ALEMANHA": "Alemanha", "GERMANY": "Alemanha",
+    "COSTA DO MARFIM": "Costa do Marfim", "IVORY COAST": "Costa do Marfim",
+    "NOVA ZELÂNDIA": "Nova Zelândia", "NEW ZEALAND": "Nova Zelândia",
+    "NOVA ZELANDIA": "Nova Zelândia",
+    "ARÁBIA SAUDITA": "Arábia Saudita", "SAUDI ARABIA": "Arábia Saudita",
+    "ARABIA SAUDITA": "Arábia Saudita",
+    "BÓSNIA": "Bósnia e Herzegovina", "BOSNIA": "Bósnia e Herzegovina",
+    "BOSNIA E HERZEGOVINA": "Bósnia e Herzegovina",
+    "AFRICA DO SUL": "África do Sul", "SOUTH AFRICA": "África do Sul",
+}
+
+TEAMS = [
+    ("MEX", "México"), ("RSA", "África do Sul"), ("KOR", "Coreia do Sul"),
+    ("CZE", "Tchéquia"), ("CAN", "Canadá"), ("BIH", "Bósnia e Herzegovina"),
+    ("QAT", "Catar"), ("SUI", "Suíça"), ("BRA", "Brasil"), ("MAR", "Marrocos"),
+    ("HAI", "Haiti"), ("SCO", "Escócia"), ("USA", "EUA"), ("PAR", "Paraguai"),
+    ("AUS", "Austrália"), ("TUR", "Turquia"), ("GER", "Alemanha"), ("CUW", "Curaçao"),
+    ("CIV", "Costa do Marfim"), ("ECU", "Equador"), ("NED", "Países Baixos"),
+    ("JPN", "Japão"), ("SWE", "Suécia"), ("TUN", "Tunísia"), ("BEL", "Bélgica"),
+    ("EGY", "Egito"), ("IRN", "Irã"), ("NZL", "Nova Zelândia"), ("ESP", "Espanha"),
+    ("CPV", "Cabo Verde"), ("KSA", "Arábia Saudita"), ("URU", "Uruguai"),
+    ("FRA", "França"), ("SEN", "Senegal"), ("IRQ", "Iraque"), ("NOR", "Noruega"),
+    ("ARG", "Argentina"), ("ALG", "Argélia"), ("AUT", "Áustria"), ("JOR", "Jordânia"),
+    ("POR", "Portugal"), ("COD", "Congo RD"), ("UZB", "Uzbequistão"),
+    ("COL", "Colômbia"), ("ENG", "Inglaterra"), ("CRO", "Croácia"),
+    ("GHA", "Gana"), ("PAN", "Panamá"),
+]
+
+FWC_CODES = [f"FWC{i}" for i in range(1, 20)]
+
+
+def build_map() -> dict:
+    m = {1: "00"}
+    for i, code in enumerate(FWC_CODES):
+        m[i + 2] = code
+    for t_idx, (prefix, _) in enumerate(TEAMS):
+        start = 21 + t_idx * 20
+        for j in range(1, 21):
+            m[start + j - 1] = f"{prefix}{j}"
+    return m
 
 
 def pais_label(pais: str) -> str:
-    """Texto simples — para selectbox e expander (não suportam HTML)."""
-    return pais
-
-
-def pais_md(pais: str) -> str:
-    """HTML com imagem de bandeira via flagcdn.com — para st.markdown(unsafe_allow_html=True)."""
-    iso2 = PAIS_ISO2.get(pais, "")
-    if not iso2:
-        return pais
-    img = (f'<img src="https://flagcdn.com/20x15/{iso2}.png" '
-           f'style="vertical-align:middle;margin-right:5px;border-radius:2px">')
-    return f"{img}{pais}"
-
-
-def flag_url(pais: str) -> str:
-    iso2 = PAIS_ISO2.get(pais, "")
-    return f"https://flagcdn.com/20x15/{iso2}.png" if iso2 else ""
-
-
-# Aliases para nomes populares de países que diferem do nome oficial no álbum
-PAIS_ALIAS = {
-    "HOLANDA": "Países Baixos",
-    "HOLLAND": "Países Baixos",
-    "NETHERLANDS": "Países Baixos",
-    "PAÍSES BAIXOS": "Países Baixos",
-    "COREIA": "Coreia do Sul",
-    "KOREA": "Coreia do Sul",
-    "ALEMANHA": "Alemanha",
-    "GERMANY": "Alemanha",
-    "COSTA DO MARFIM": "Costa do Marfim",
-    "IVORY COAST": "Costa do Marfim",
-    "NOVA ZELÂNDIA": "Nova Zelândia",
-    "NEW ZEALAND": "Nova Zelândia",
-    "ARÁBIA SAUDITA": "Arábia Saudita",
-    "SAUDI ARABIA": "Arábia Saudita",
-    "BÓSNIA": "Bósnia e Herzegovina",
-    "BOSNIA": "Bósnia e Herzegovina",
-    "AFRICA DO SUL": "África do Sul",
-    "SOUTH AFRICA": "África do Sul",
-    "PAISES BAIXOS": "Países Baixos",
-    "ARABIA SAUDITA": "Arábia Saudita",
-    "NOVA ZELANDIA": "Nova Zelândia",
-    "BOSNIA E HERZEGOVINA": "Bósnia e Herzegovina",
-}
-STATUS_ICON = {"tenho": "🟢", "repetida": "🟡", "faltante": "🔴"}
-STATUS_LABEL = {s: f"{STATUS_ICON[s]} {s}" for s in STATUS_OPTIONS}
-
-COLS_GRID = 3  # colunas no grid de figurinhas
+    flag = BANDEIRAS.get(pais, "")
+    return f"{flag} {pais}" if flag else pais
 
 
 # ---------------------------------------------------------------------------
@@ -128,7 +130,6 @@ def get_worksheet():
         creds_info = dict(st.secrets["google_service_account"])
         sheet_id = st.secrets["sheet_id"]
     except Exception:
-        # Desenvolvimento local: lê arquivos da pasta do projeto
         base = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(base, "service_account.json")) as f:
             creds_info = json.load(f)
@@ -149,12 +150,11 @@ def load_df() -> pd.DataFrame:
     df["Status"] = df["Status"].where(df["Status"].isin(STATUS_OPTIONS), "faltante")
     df["Repetidas"] = pd.to_numeric(df.get("Repetidas", 0), errors="coerce").fillna(0).astype(int)
     df["Descricao"] = df["Descricao"].astype(str)
-    # Linha real na planilha (linha 1 = cabeçalho, dados começam em 2)
     df["_row"] = range(2, len(df) + 2)
     return df
 
 
-def salvar(updates: list[tuple[int, str, int]]):
+def salvar(updates: list):
     """updates: lista de (linha_planilha, status, repetidas)"""
     ws = get_worksheet()
     cells = []
@@ -167,13 +167,7 @@ def salvar(updates: list[tuple[int, str, int]]):
 
 def _form_figurinha(fig):
     """Renderiza o formulário de edição de status de uma figurinha."""
-    st.markdown(
-        f'<div style="background:#d1ecf1;border-left:4px solid #0ea5e9;'
-        f'padding:0.6rem 1rem;border-radius:0.4rem;margin-bottom:0.5rem">'
-        f'<b>{fig["Codigo"]}</b> — {pais_md(fig["Pais"])} / {fig["Descricao"]}'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+    st.info(f"**{fig['Codigo']}** — {pais_label(fig['Pais'])} / {fig['Descricao']}")
 
     novo_status = st.radio(
         "Status:",
@@ -298,14 +292,14 @@ _CODIGO_RE = re.compile(
 
 
 def _pre_processar(img: Image.Image) -> np.ndarray:
-    img = img.convert("L")                          # escala de cinza
+    img = img.convert("L")
     img = img.filter(ImageFilter.SHARPEN)
     img = ImageEnhance.Contrast(img).enhance(2.0)
     img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
     return np.array(img.convert("RGB"))
 
 
-def _extrair_codigos(foto: Image.Image, codigos_validos: set) -> list[str]:
+def _extrair_codigos(foto: Image.Image, codigos_validos: set) -> list:
     arr = _pre_processar(foto)
     ocr = get_ocr()
     resultado, _ = ocr(arr)
@@ -321,19 +315,27 @@ def _extrair_codigos(foto: Image.Image, codigos_validos: set) -> list[str]:
             codigo = m.group(1).upper() + m.group(2)
             if codigo in codigos_validos:
                 encontrados.append(codigo)
-    return list(dict.fromkeys(encontrados))  # sem duplicatas, mantém ordem
+    return list(dict.fromkeys(encontrados))
+
+
+# ---------------------------------------------------------------------------
+# Session state
+# ---------------------------------------------------------------------------
+
+if "time_sel" not in st.session_state:
+    st.session_state.time_sel = None
 
 
 # ---------------------------------------------------------------------------
 # Abas
 # ---------------------------------------------------------------------------
 
-tab_resumo, tab_time, tab_busca, tab_scanner, tab_listas = st.tabs(
-    ["📊 Resumo", "🏳️ Por Time", "🔍 Busca", "📷 Scanner", "📋 Listas"]
+tab_resumo, tab_time, tab_busca, tab_scanner, tab_pacote, tab_listas = st.tabs(
+    ["📊 Resumo", "🏳️ Por Time", "🔍 Busca", "📷 Scanner", "📦 Pacote", "📋 Listas"]
 )
 
 
-# ── Resumo ──────────────────────────────────────────────────────────────────
+# ── Resumo ───────────────────────────────────────────────────────────────────
 with tab_resumo:
     st.title("⚽ Album Copa 2026")
 
@@ -371,79 +373,132 @@ with tab_resumo:
     stats["Progresso"] = stats.apply(lambda r: f"{int(r['Tenho'])}/{int(r['Total'])}", axis=1)
     stats["✅"] = stats["Tenho"] == stats["Total"]
     stats = stats.sort_values("Tenho", ascending=False)
-    stats["_flag"] = stats["Pais"].apply(flag_url)
+    stats["Seleção"] = stats["Pais"].apply(pais_label)
 
     st.dataframe(
-        stats[["_flag", "Pais", "Progresso", "✅"]],
+        stats[["Seleção", "Progresso", "✅"]],
         use_container_width=True,
         hide_index=True,
-        column_config={
-            "_flag": st.column_config.ImageColumn(" ", width="small"),
-            "✅": st.column_config.CheckboxColumn(disabled=True),
-        },
+        column_config={"✅": st.column_config.CheckboxColumn(disabled=True)},
     )
 
 
-# ── Por Time ────────────────────────────────────────────────────────────────
+# ── Por Time ─────────────────────────────────────────────────────────────────
 with tab_time:
     df = load_df()
-
     paises = sorted(
         df[~(df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00"))]["Pais"].unique()
     )
-    opcoes = ["⭐ FIFA World Cup 2026 (FWC)"] + list(paises)
 
-    escolha = st.selectbox("Seleção:", opcoes, label_visibility="collapsed")
+    pais_tenho = {
+        p: int(df[df["Pais"] == p]["Status"].isin(["tenho", "repetida"]).sum())
+        for p in paises
+    }
 
-    if escolha.startswith("⭐"):
-        time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
-    else:
-        time_df = df[df["Pais"] == escolha].copy()
+    if st.session_state.time_sel is None:
+        # ── Grid de seleção ──────────────────────────────────────────────────
+        st.caption("Toque em uma seleção para ver e editar as figurinhas.")
 
-    time_df = time_df.reset_index(drop=True)
-
-    tenho_time = time_df["Status"].isin(["tenho", "repetida"]).sum()
-    st.caption(f"{tenho_time}/{len(time_df)} figurinhas deste time")
-
-    st.divider()
-    st.caption("Toque no ícone para alterar o status de cada figurinha.")
-
-    prefix = f"grid_{escolha}_"
-    alteracoes: dict[int, tuple[str, int]] = {}
-
-    chunks = [time_df.iloc[i : i + COLS_GRID] for i in range(0, len(time_df), COLS_GRID)]
-    for chunk in chunks:
-        cols = st.columns(COLS_GRID)
-        for col_i, (_, fig) in enumerate(chunk.iterrows()):
-            with cols[col_i]:
-                key = f"{prefix}{fig['Codigo']}"
-                idx_atual = STATUS_OPTIONS.index(fig["Status"])
-                novo = st.selectbox(
-                    fig["Codigo"],
-                    STATUS_OPTIONS,
-                    index=idx_atual,
-                    key=key,
-                    format_func=lambda s: STATUS_ICON[s],
-                )
-                nome = fig["Descricao"]
-                if nome and nome not in ("nan", fig["Codigo"]):
-                    st.caption(nome)
-                if novo != fig["Status"]:
-                    alteracoes[int(fig["_row"])] = (novo, int(fig["Repetidas"]))
-
-    if alteracoes:
-        label = f"💾 Salvar {len(alteracoes)} alteração(ões)"
-        if st.button(label, type="primary", use_container_width=True):
-            updates = [(row, st_val, reps) for row, (st_val, reps) in alteracoes.items()]
-            with st.spinner("Salvando..."):
-                salvar(updates)
-            st.success("Salvo!")
+        fwc_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")]
+        fwc_tenho = int(fwc_df["Status"].isin(["tenho", "repetida"]).sum())
+        fwc_total = len(fwc_df)
+        fwc_check = " ✅" if fwc_tenho == fwc_total else ""
+        if st.button(
+            f"⭐ FIFA World Cup 2026  {fwc_tenho}/{fwc_total}{fwc_check}",
+            use_container_width=True,
+            key="card_fwc",
+        ):
+            st.session_state.time_sel = "_FWC_"
             st.rerun()
+
+        st.write("")
+
+        cols_g = st.columns(3)
+        for i, pais in enumerate(paises):
+            tenho_p = pais_tenho[pais]
+            check = " ✅" if tenho_p == 20 else ""
+            flag = BANDEIRAS.get(pais, "")
+            with cols_g[i % 3]:
+                if st.button(
+                    f"{flag} {pais}  {tenho_p}/20{check}",
+                    key=f"card_{pais}",
+                    use_container_width=True,
+                ):
+                    st.session_state.time_sel = pais
+                    st.rerun()
+
     else:
-        st.info("Altere o ícone de alguma figurinha para habilitar o salvar.")
+        # ── Detalhe do time ──────────────────────────────────────────────────
+        escolha = st.session_state.time_sel
+
+        if st.button("← Voltar", key="voltar_time"):
+            st.session_state.time_sel = None
+            st.rerun()
+
+        if escolha == "_FWC_":
+            time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
+            st.subheader("⭐ FIFA World Cup 2026")
+        else:
+            time_df = df[df["Pais"] == escolha].copy()
+            st.subheader(pais_label(escolha))
+
+        time_df = time_df.reset_index(drop=True)
+        tenho_time = int(time_df["Status"].isin(["tenho", "repetida"]).sum())
+        total_time = len(time_df)
+
+        st.progress(tenho_time / total_time)
+        st.caption(f"{tenho_time}/{total_time} figurinhas")
+        if tenho_time == total_time:
+            st.success("Time completo! 🏆")
+
+        st.divider()
+        st.caption("Toque no ícone para alterar o status de cada figurinha.")
+
+        prefix = f"grid_{escolha}_"
+        alteracoes: dict = {}
+
+        chunks = [time_df.iloc[i: i + COLS_GRID] for i in range(0, len(time_df), COLS_GRID)]
+        for chunk in chunks:
+            cols = st.columns(COLS_GRID)
+            for col_i, (_, fig) in enumerate(chunk.iterrows()):
+                with cols[col_i]:
+                    key = f"{prefix}{fig['Codigo']}"
+                    idx_atual = STATUS_OPTIONS.index(fig["Status"])
+                    novo = st.selectbox(
+                        fig["Codigo"],
+                        STATUS_OPTIONS,
+                        index=idx_atual,
+                        key=key,
+                        format_func=lambda s: STATUS_ICON[s],
+                    )
+                    nome = fig["Descricao"]
+                    if nome and nome not in ("nan", fig["Codigo"]):
+                        st.caption(nome)
+                    if novo != fig["Status"]:
+                        alteracoes[int(fig["_row"])] = (novo, int(fig["Repetidas"]))
+
+        if alteracoes:
+            label = f"💾 Salvar {len(alteracoes)} alteração(ões)"
+            if st.button(label, type="primary", use_container_width=True, key="salvar_time"):
+                updates = [(row, st_val, reps) for row, (st_val, reps) in alteracoes.items()]
+                with st.spinner("Salvando..."):
+                    salvar(updates)
+                df_novo = load_df()
+                if escolha == "_FWC_":
+                    time_novo = df_novo[
+                        df_novo["Codigo"].str.startswith("FWC") | (df_novo["Codigo"] == "00")
+                    ]
+                else:
+                    time_novo = df_novo[df_novo["Pais"] == escolha]
+                if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
+                    st.balloons()
+                st.success("Salvo!")
+                st.rerun()
+        else:
+            st.info("Altere o ícone de alguma figurinha para habilitar o salvar.")
 
 
-# ── Busca ────────────────────────────────────────────────────────────────────
+# ── Busca ─────────────────────────────────────────────────────────────────────
 with tab_busca:
     st.subheader("Buscar figurinha")
     st.caption("Digite o código (ex: BRA5) ou parte do nome do jogador (ex: Messi, Vini).")
@@ -459,16 +514,13 @@ with tab_busca:
     if query:
         q_upper = query.upper()
 
-        # 1. Tenta código exato
         match_codigo = df[df["Codigo"] == q_upper]
 
         if not match_codigo.empty:
             resultados = match_codigo
         else:
-            # 2. Busca por descrição (nome do jogador)
             mask_desc = df["Descricao"].str.contains(query, case=False, na=False)
 
-            # 3. Busca por país (nome oficial ou alias popular)
             pais_alvo = PAIS_ALIAS.get(q_upper)
             if pais_alvo:
                 mask_pais = df["Pais"] == pais_alvo
@@ -483,7 +535,7 @@ with tab_busca:
             _form_figurinha(resultados.iloc[0])
         else:
             opcoes_label = [
-                f"{r['Codigo']} — {r['Descricao']} ({r['Pais']})"
+                f"{r['Codigo']} — {r['Descricao']} ({pais_label(r['Pais'])})"
                 for _, r in resultados.iterrows()
             ]
             escolha_idx = st.selectbox(
@@ -494,7 +546,7 @@ with tab_busca:
             _form_figurinha(resultados.iloc[escolha_idx])
 
 
-# ── Scanner ──────────────────────────────────────────────────────────────────
+# ── Scanner ───────────────────────────────────────────────────────────────────
 with tab_scanner:
     st.subheader("Scanner de figurinha")
     st.caption("Fotografe o código impresso na figurinha (ex: BRA5). Mantenha boa iluminação.")
@@ -521,13 +573,7 @@ with tab_scanner:
 
             fig = df[df["Codigo"] == codigo_lido].iloc[0]
             st.success(f"Código detectado: **{fig['Codigo']}**")
-            st.markdown(
-                f'<div style="background:#d1ecf1;border-left:4px solid #0ea5e9;'
-                f'padding:0.6rem 1rem;border-radius:0.4rem;margin-bottom:0.5rem">'
-                f'<b>{fig["Codigo"]}</b> — {pais_md(fig["Pais"])} / {fig["Descricao"]}'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+            st.info(f"**{fig['Codigo']}** — {pais_label(fig['Pais'])} / {fig['Descricao']}")
             st.caption(f"Status atual: {STATUS_LABEL[fig['Status']]}")
 
             st.divider()
@@ -549,7 +595,81 @@ with tab_scanner:
                     st.rerun()
 
 
-# ── Listas ───────────────────────────────────────────────────────────────────
+# ── Pacote ────────────────────────────────────────────────────────────────────
+with tab_pacote:
+    st.subheader("📦 Adicionar figurinhas")
+    st.caption("Digite os números do pacote separados por espaço, vírgula ou linha.")
+
+    entrada = st.text_area(
+        "Números:",
+        placeholder="27 80 85 89 107\n120 125 132 136 160",
+        height=120,
+        label_visibility="collapsed",
+        key="pacote_entrada",
+    )
+
+    if st.button("✅ Adicionar figurinhas", type="primary", use_container_width=True, key="pacote_btn"):
+        numeros_raw = re.split(r"[,\s\n]+", entrada.strip())
+        numeros = [int(n) for n in numeros_raw if n.strip().isdigit()]
+
+        if not numeros:
+            st.error("Nenhum número válido encontrado.")
+        else:
+            num_map = build_map()
+            df_atual = load_df()
+            by_code = df_atual.set_index("Codigo")
+
+            novas, repetidas_lst, desconhecidos = [], [], []
+            updates = []
+
+            for n in sorted(set(numeros)):
+                code = num_map.get(n)
+                if not code or code not in by_code.index:
+                    desconhecidos.append(n)
+                    continue
+                row_data = by_code.loc[code]
+                status = row_data["Status"]
+                reps_atual = int(row_data["Repetidas"])
+                row_num = int(row_data["_row"])
+
+                if status == "faltante":
+                    updates.append((row_num, "tenho", 0))
+                    novas.append((n, code))
+                elif status == "tenho":
+                    updates.append((row_num, "repetida", 1))
+                    repetidas_lst.append((n, code, 1))
+                else:
+                    nova_qtd = reps_atual + 1
+                    updates.append((row_num, "repetida", nova_qtd))
+                    repetidas_lst.append((n, code, nova_qtd))
+
+            if updates:
+                with st.spinner("Salvando no Google Sheets..."):
+                    salvar(updates)
+
+                df_total = load_df()
+                total_tenho = int(df_total["Status"].isin(["tenho", "repetida"]).sum())
+
+                if novas:
+                    st.success(f"✅ {len(novas)} figurinha(s) nova(s) adicionada(s)!")
+                    st.code("\n".join(f"{n:>4}  {code}" for n, code in novas), language=None)
+
+                if repetidas_lst:
+                    st.warning(f"🟡 {len(repetidas_lst)} repetida(s) registrada(s).")
+                    st.code(
+                        "\n".join(f"{n:>4}  {code}  (extras: {qtd})" for n, code, qtd in repetidas_lst),
+                        language=None,
+                    )
+
+                if desconhecidos:
+                    st.error(f"⚠️ Números não encontrados: {desconhecidos}")
+
+                st.info(f"📊 Total no álbum agora: **{total_tenho}/980** ({total_tenho/980*100:.1f}%)")
+            else:
+                st.warning("Nenhuma atualização necessária.")
+
+
+# ── Listas ────────────────────────────────────────────────────────────────────
 with tab_listas:
     df = load_df()
     faltantes = df[df["Status"] == "faltante"]
@@ -568,7 +688,7 @@ with tab_listas:
 
     st.divider()
 
-    sub_falt, sub_rep = st.tabs(["❌ Faltantes", "🔄 Para trocar"])
+    sub_falt, sub_rep, sub_troca = st.tabs(["❌ Faltantes", "🔄 Para trocar", "🤝 Trocas"])
 
     with sub_falt:
         st.caption(f"{len(faltantes)} figurinhas faltando")
@@ -581,7 +701,7 @@ with tab_listas:
                     f"{r['Codigo']} — {r['Descricao']}"
                     for _, r in grupo.iterrows()
                 )
-                with st.expander(f"{pais} — {len(grupo)} faltando"):
+                with st.expander(f"{pais_label(pais)} — {len(grupo)} faltando"):
                     st.code(linhas, language=None)
 
     with sub_rep:
@@ -594,7 +714,58 @@ with tab_listas:
             for _, fig in repetidas.iterrows():
                 extras = int(fig["Repetidas"])
                 sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
-                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({fig['Pais']}){sufixo}")
+                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({pais_label(fig['Pais'])}){sufixo}")
 
             st.code("\n".join(linhas), language=None)
             st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
+
+    with sub_troca:
+        st.caption("Cole os números das figurinhas que **faltam ao seu amigo** para ver o que você pode oferecer.")
+
+        lista_amigo = st.text_area(
+            "Faltantes do amigo:",
+            placeholder="1 5 12 27 45 80 102...",
+            height=100,
+            label_visibility="collapsed",
+            key="troca_entrada",
+        )
+
+        if st.button("🔍 Ver trocas possíveis", use_container_width=True, key="troca_btn"):
+            numeros_raw = re.split(r"[,\s\n]+", lista_amigo.strip())
+            numeros_amigo = {int(n) for n in numeros_raw if n.strip().isdigit()}
+
+            if not numeros_amigo:
+                st.error("Nenhum número válido encontrado.")
+            else:
+                num_map = build_map()
+                codigos_faltam_amigo = {num_map[n] for n in numeros_amigo if n in num_map}
+
+                posso_oferecer = repetidas[repetidas["Codigo"].isin(codigos_faltam_amigo)]
+                nao_tenho_rep = codigos_faltam_amigo - set(repetidas["Codigo"])
+                posso_emprestar = df[
+                    df["Codigo"].isin(nao_tenho_rep) & (df["Status"] == "tenho")
+                ]
+
+                st.markdown(f"**{len(numeros_amigo)}** figurinhas na lista do amigo analisadas.")
+                st.divider()
+
+                if posso_oferecer.empty:
+                    st.warning("Você não tem nenhuma repetida que falta ao seu amigo.")
+                else:
+                    st.success(f"✅ Você pode oferecer **{len(posso_oferecer)}** figurinha(s) (suas repetidas):")
+                    linhas = [
+                        f"{fig['Codigo']} — {fig['Descricao']} ({pais_label(fig['Pais'])})  +{int(fig['Repetidas'])}x"
+                        for _, fig in posso_oferecer.iterrows()
+                    ]
+                    st.code("\n".join(linhas), language=None)
+
+                if not posso_emprestar.empty:
+                    st.info(
+                        f"ℹ️ Você **tem** (sem repetida) mais **{len(posso_emprestar)}** que o amigo precisa "
+                        f"— estas você só pode oferecer se quiser abrir mão da sua cópia:"
+                    )
+                    linhas2 = [
+                        f"{r['Codigo']} — {r['Descricao']} ({pais_label(r['Pais'])})"
+                        for _, r in posso_emprestar.iterrows()
+                    ]
+                    st.code("\n".join(linhas2), language=None)
