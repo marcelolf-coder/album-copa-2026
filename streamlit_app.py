@@ -33,27 +33,61 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── Copa 2026: sobrescreve variáveis CSS raiz do Streamlit ── */
-:root {
-    --primary-color: #1E40AF !important;
-    --background-color: #FFFFFF !important;
-    --secondary-background-color: #EFF6FF !important;
-    --text-color: #1E293B !important;
-}
+/* ── Copa 2026: força tema claro em todos os contêineres Streamlit ── */
 
-html, body { background-color: #FFFFFF !important; color: #1E293B !important; }
-
+/* Fundo branco em TODOS os contêineres principais */
+html, body,
 .stApp,
+.main,
+section[data-testid="stMain"],
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewContainer"] > section,
-[data-testid="block-container"] {
+[data-testid="stMainBlockContainer"],
+.stMainBlockContainer,
+[data-testid="block-container"],
+.block-container,
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stBottom"] {
     background-color: #FFFFFF !important;
     color: #1E293B !important;
 }
 
-[data-testid="stHeader"] { background-color: #FFFFFF !important; border-bottom: 1px solid #E2E8F0; }
-[data-testid="stSidebar"], section[data-testid="stSidebar"] > div {
+/* Header */
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"] {
+    background-color: #FFFFFF !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div,
+[data-testid="stSidebarContent"] {
     background-color: #EFF6FF !important;
+}
+
+/* Fundo secundário: inputs, selects, expanders, métricas */
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"] > div,
+[data-baseweb="base-input"],
+[data-testid="stTextInput"] > div > div,
+[data-testid="stTextArea"] > div > div,
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stExpanderDetails"],
+.streamlit-expanderHeader,
+[data-testid="stExpander"] > details,
+[data-testid="metric-container"],
+[data-testid="stMetricContainer"],
+[data-testid="stCaptionContainer"] {
+    background-color: #EFF6FF !important;
+    color: #1E293B !important;
+}
+
+/* Texto em todos os elementos */
+p, span, label, div, h1, h2, h3, h4, h5, h6, li {
+    color: #1E293B !important;
 }
 
 /* Botões primários */
@@ -71,26 +105,81 @@ button[data-testid="baseButton-primary"]:hover,
     border-color: #1E3A8A !important;
 }
 
+/* Botões secundários */
+.stButton > button:not([kind="primary"]) {
+    background-color: #F8FAFC !important;
+    color: #1E293B !important;
+    border: 1px solid #CBD5E1 !important;
+}
+.stButton > button:not([kind="primary"]):hover {
+    background-color: #EFF6FF !important;
+    border-color: #1E40AF !important;
+    color: #1E40AF !important;
+}
+
 /* Barra de progresso */
 [data-testid="stProgressBar"] > div { background-color: #DBEAFE !important; }
 [data-testid="stProgressBar"] > div > div { background-color: #1E40AF !important; }
 
 /* Tabs */
 div[data-testid="stTabs"] > div:first-child { overflow-x: auto; white-space: nowrap; }
+button[data-baseweb="tab"] {
+    color: #64748B !important;
+    background-color: transparent !important;
+}
 button[data-baseweb="tab"][aria-selected="true"] {
     border-bottom-color: #1E40AF !important;
     color: #1E40AF !important;
 }
+[data-testid="stTabContent"] {
+    background-color: #FFFFFF !important;
+}
 
 /* Métricas */
 div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #1E293B !important; }
+div[data-testid="stMetricLabel"] { color: #64748B !important; }
+div[data-testid="stMetricDelta"] { color: #1E40AF !important; }
 
 /* Grid */
 div[data-testid="column"] { padding: 0 2px !important; }
-div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; }
-div[data-testid="stSelectbox"] div { font-size: 0.75rem !important; }
+div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; color: #1E293B !important; }
+div[data-testid="stSelectbox"] div { font-size: 0.75rem !important; color: #1E293B !important; }
 
+/* Links */
 a { color: #1E40AF !important; }
+
+/* Modo escuro do sistema: garante override mesmo com prefers-color-scheme: dark */
+@media (prefers-color-scheme: dark) {
+    html, body,
+    .stApp, .main,
+    section[data-testid="stMain"],
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="block-container"] {
+        background-color: #FFFFFF !important;
+        color: #1E293B !important;
+    }
+    [data-testid="stHeader"] { background-color: #FFFFFF !important; }
+    p, span, label, div { color: #1E293B !important; }
+}
+
+/* Card buttons (grid de times) */
+div[data-testid="column"] .stButton > button {
+    border-radius: 12px !important;
+    border: 1px solid #CBD5E1 !important;
+    padding: 0.5rem 0.25rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.5 !important;
+    min-height: 72px !important;
+    white-space: pre-line !important;
+    background-color: #F8FAFC !important;
+    color: #1E293B !important;
+}
+div[data-testid="column"] .stButton > button:hover {
+    background-color: #EFF6FF !important;
+    border-color: #1E40AF !important;
+    color: #1E40AF !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
