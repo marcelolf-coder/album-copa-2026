@@ -48,6 +48,55 @@ div[data-testid="stTabs"] > div:first-child { overflow-x: auto; }
 """, unsafe_allow_html=True)
 
 STATUS_OPTIONS = ["faltante", "tenho", "repetida"]
+
+BANDEIRAS = {
+    "México": "🇲🇽", "África do Sul": "🇿🇦", "Coreia do Sul": "🇰🇷",
+    "Tchéquia": "🇨🇿", "Canadá": "🇨🇦", "Bósnia e Herzegovina": "🇧🇦",
+    "Catar": "🇶🇦", "Suíça": "🇨🇭", "Brasil": "🇧🇷", "Marrocos": "🇲🇦",
+    "Haiti": "🇭🇹", "Escócia": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "EUA": "🇺🇸", "Paraguai": "🇵🇾",
+    "Austrália": "🇦🇺", "Turquia": "🇹🇷", "Alemanha": "🇩🇪", "Curaçao": "🇨🇼",
+    "Costa do Marfim": "🇨🇮", "Equador": "🇪🇨", "Países Baixos": "🇳🇱",
+    "Japão": "🇯🇵", "Suécia": "🇸🇪", "Tunísia": "🇹🇳", "Bélgica": "🇧🇪",
+    "Egito": "🇪🇬", "Irã": "🇮🇷", "Nova Zelândia": "🇳🇿", "Espanha": "🇪🇸",
+    "Cabo Verde": "🇨🇻", "Arábia Saudita": "🇸🇦", "Uruguai": "🇺🇾",
+    "França": "🇫🇷", "Senegal": "🇸🇳", "Iraque": "🇮🇶", "Noruega": "🇳🇴",
+    "Argentina": "🇦🇷", "Argélia": "🇩🇿", "Áustria": "🇦🇹", "Jordânia": "🇯🇴",
+    "Portugal": "🇵🇹", "Congo RD": "🇨🇩", "Uzbequistão": "🇺🇿",
+    "Colômbia": "🇨🇴", "Inglaterra": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Croácia": "🇭🇷",
+    "Gana": "🇬🇭", "Panamá": "🇵🇦",
+}
+
+
+def pais_label(pais: str) -> str:
+    flag = BANDEIRAS.get(pais, "")
+    return f"{flag} {pais}" if flag else pais
+
+
+# Aliases para nomes populares de países que diferem do nome oficial no álbum
+PAIS_ALIAS = {
+    "HOLANDA": "Países Baixos",
+    "HOLLAND": "Países Baixos",
+    "NETHERLANDS": "Países Baixos",
+    "PAÍSES BAIXOS": "Países Baixos",
+    "COREIA": "Coreia do Sul",
+    "KOREA": "Coreia do Sul",
+    "ALEMANHA": "Alemanha",
+    "GERMANY": "Alemanha",
+    "COSTA DO MARFIM": "Costa do Marfim",
+    "IVORY COAST": "Costa do Marfim",
+    "NOVA ZELÂNDIA": "Nova Zelândia",
+    "NEW ZEALAND": "Nova Zelândia",
+    "ARÁBIA SAUDITA": "Arábia Saudita",
+    "SAUDI ARABIA": "Arábia Saudita",
+    "BÓSNIA": "Bósnia e Herzegovina",
+    "BOSNIA": "Bósnia e Herzegovina",
+    "AFRICA DO SUL": "África do Sul",
+    "SOUTH AFRICA": "África do Sul",
+    "PAISES BAIXOS": "Países Baixos",
+    "ARABIA SAUDITA": "Arábia Saudita",
+    "NOVA ZELANDIA": "Nova Zelândia",
+    "BOSNIA E HERZEGOVINA": "Bósnia e Herzegovina",
+}
 STATUS_ICON = {"tenho": "🟢", "repetida": "🟡", "faltante": "🔴"}
 STATUS_LABEL = {s: f"{STATUS_ICON[s]} {s}" for s in STATUS_OPTIONS}
 
@@ -103,7 +152,7 @@ def salvar(updates: list[tuple[int, str, int]]):
 
 def _form_figurinha(fig):
     """Renderiza o formulário de edição de status de uma figurinha."""
-    st.info(f"**{fig['Codigo']}** — {fig['Pais']} / {fig['Descricao']}")
+    st.info(f"**{fig['Codigo']}** — {pais_label(fig['Pais'])} / {fig['Descricao']}")
 
     novo_status = st.radio(
         "Status:",
@@ -301,9 +350,10 @@ with tab_resumo:
     stats["Progresso"] = stats.apply(lambda r: f"{int(r['Tenho'])}/{int(r['Total'])}", axis=1)
     stats["✅"] = stats["Tenho"] == stats["Total"]
     stats = stats.sort_values("Tenho", ascending=False)
+    stats["Seleção"] = stats["Pais"].apply(pais_label)
 
     st.dataframe(
-        stats[["Pais", "Progresso", "✅"]],
+        stats[["Seleção", "Progresso", "✅"]],
         use_container_width=True,
         hide_index=True,
         column_config={"✅": st.column_config.CheckboxColumn(disabled=True)},
@@ -319,7 +369,10 @@ with tab_time:
     )
     opcoes = ["⭐ FIFA World Cup 2026 (FWC)"] + list(paises)
 
-    escolha = st.selectbox("Seleção:", opcoes, label_visibility="collapsed")
+    escolha = st.selectbox(
+        "Seleção:", opcoes, label_visibility="collapsed",
+        format_func=lambda p: p if p.startswith("⭐") else pais_label(p),
+    )
 
     if escolha.startswith("⭐"):
         time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
@@ -391,9 +444,17 @@ with tab_busca:
         if not match_codigo.empty:
             resultados = match_codigo
         else:
-            # 2. Busca por nome (parcial, case-insensitive)
-            mask = df["Descricao"].str.contains(query, case=False, na=False)
-            resultados = df[mask]
+            # 2. Busca por descrição (nome do jogador)
+            mask_desc = df["Descricao"].str.contains(query, case=False, na=False)
+
+            # 3. Busca por país (nome oficial ou alias popular)
+            pais_alvo = PAIS_ALIAS.get(q_upper)
+            if pais_alvo:
+                mask_pais = df["Pais"] == pais_alvo
+            else:
+                mask_pais = df["Pais"].str.contains(query, case=False, na=False)
+
+            resultados = df[mask_desc | mask_pais]
 
         if resultados.empty:
             st.error(f"Nenhuma figurinha encontrada para **{query}**.")
@@ -401,7 +462,7 @@ with tab_busca:
             _form_figurinha(resultados.iloc[0])
         else:
             opcoes_label = [
-                f"{r['Codigo']} — {r['Descricao']} ({r['Pais']})"
+                f"{r['Codigo']} — {r['Descricao']} ({pais_label(r['Pais'])})"
                 for _, r in resultados.iterrows()
             ]
             escolha_idx = st.selectbox(
@@ -439,7 +500,7 @@ with tab_scanner:
 
             fig = df[df["Codigo"] == codigo_lido].iloc[0]
             st.success(f"Código detectado: **{fig['Codigo']}**")
-            st.info(f"**{fig['Codigo']}** — {fig['Pais']} / {fig['Descricao']}")
+            st.info(f"**{fig['Codigo']}** — {pais_label(fig['Pais'])} / {fig['Descricao']}")
             st.caption(f"Status atual: {STATUS_LABEL[fig['Status']]}")
 
             st.divider()
@@ -493,7 +554,7 @@ with tab_listas:
                     f"{r['Codigo']} — {r['Descricao']}"
                     for _, r in grupo.iterrows()
                 )
-                with st.expander(f"{pais} — {len(grupo)} faltando"):
+                with st.expander(f"{pais_label(pais)} — {len(grupo)} faltando"):
                     st.code(linhas, language=None)
 
     with sub_rep:
@@ -506,7 +567,7 @@ with tab_listas:
             for _, fig in repetidas.iterrows():
                 extras = int(fig["Repetidas"])
                 sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
-                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({fig['Pais']}){sufixo}")
+                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({pais_label(fig['Pais'])}){sufixo}")
 
             st.code("\n".join(linhas), language=None)
             st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
