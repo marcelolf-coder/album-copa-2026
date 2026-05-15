@@ -33,12 +33,52 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-div[data-testid="stMetricValue"] { font-size: 2rem !important; }
+/* ── Copa 2026 theme ── */
+.stApp, [data-testid="stAppViewContainer"] {
+    background-color: #FFFFFF !important;
+    color: #1E293B !important;
+}
+[data-testid="stHeader"] { background-color: #FFFFFF !important; }
+[data-testid="stSidebar"] { background-color: #EFF6FF !important; }
+section[data-testid="stSidebar"] > div { background-color: #EFF6FF !important; }
+
+/* Botões primários */
+.stButton > button[kind="primary"],
+button[data-testid="baseButton-primary"] {
+    background-color: #1E40AF !important;
+    border-color: #1E40AF !important;
+    color: #FFFFFF !important;
+    font-size: 1rem;
+    padding: 0.6rem;
+}
+.stButton > button[kind="primary"]:hover,
+button[data-testid="baseButton-primary"]:hover {
+    background-color: #1E3A8A !important;
+    border-color: #1E3A8A !important;
+}
+
+/* Barra de progresso */
+[data-testid="stProgressBar"] > div { background-color: #EFF6FF !important; }
+[data-testid="stProgressBar"] > div > div { background-color: #1E40AF !important; }
+
+/* Tabs */
+div[data-testid="stTabs"] > div:first-child { overflow-x: auto; white-space: nowrap; }
+button[data-baseweb="tab"][aria-selected="true"] {
+    border-bottom-color: #1E40AF !important;
+    color: #1E40AF !important;
+}
+
+/* Métricas */
+div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #1E293B !important; }
+div[data-testid="stMetricLabel"] { color: #475569 !important; }
+
+/* Grid compacto */
 div[data-testid="column"] { padding: 0 2px !important; }
 div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; }
 div[data-testid="stSelectbox"] div { font-size: 0.75rem !important; }
-div[data-testid="stTabs"] > div:first-child { overflow-x: auto; white-space: nowrap; }
-.stButton > button[kind="primary"] { font-size: 1rem; padding: 0.6rem; }
+
+/* Links */
+a { color: #1E40AF !important; }
 </style>
 """, unsafe_allow_html=True)
 
