@@ -22,6 +22,7 @@ import gspread
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image, ImageEnhance, ImageFilter
 
 st.set_page_config(
@@ -33,9 +34,19 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── Copa 2026: força tema claro em todos os contêineres Streamlit ── */
+/* ── Copa 2026: força tema claro ── */
 
-/* Fundo branco em TODOS os contêineres principais */
+/* ESTRATÉGIA 1: Redefinir variáveis CSS no .stApp (vence :root na cascata
+   porque .stApp está mais próximo dos filhos — herdado antes de :root) */
+.stApp, .main, body {
+    --background-color: #FFFFFF;
+    --secondary-background-color: #EFF6FF;
+    --text-color: #1E293B;
+    --primary-color: #1E40AF;
+    --font: "Source Sans Pro", sans-serif;
+}
+
+/* ESTRATÉGIA 2: Sobrescrever propriedades diretas com !important */
 html, body,
 .stApp,
 .main,
@@ -182,6 +193,31 @@ div[data-testid="column"] .stButton > button:hover {
 }
 </style>
 """, unsafe_allow_html=True)
+
+# Limpa preferência de tema escuro do localStorage via iframe same-origin.
+# Só remove entradas que indicam tema dark; entradas "light" são preservadas.
+# Se o iframe não tiver acesso ao localStorage do pai, o try-catch falha silenciosamente.
+components.html("""
+<script>
+(function () {
+    try {
+        var s = window.parent.localStorage;
+        var toRemove = [];
+        for (var i = 0; i < s.length; i++) {
+            var k = s.key(i);
+            if (!k) continue;
+            var v = s.getItem(k) || '';
+            var isDarkKey = k.toLowerCase().includes('theme');
+            var isDarkVal = v === 'dark' || v.includes('"base":"dark"') ||
+                            v.includes('"backgroundColor":"#0E1117"') ||
+                            v.includes('"backgroundColor":"#0e1117"');
+            if (isDarkKey && isDarkVal) toRemove.push(k);
+        }
+        toRemove.forEach(function (k) { s.removeItem(k); });
+    } catch (e) { /* cross-origin: não tem acesso */ }
+})();
+</script>
+""", height=0)
 
 # ---------------------------------------------------------------------------
 # Constantes
