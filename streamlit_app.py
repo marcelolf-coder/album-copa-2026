@@ -49,27 +49,42 @@ div[data-testid="stTabs"] > div:first-child { overflow-x: auto; }
 
 STATUS_OPTIONS = ["faltante", "tenho", "repetida"]
 
-BANDEIRAS = {
-    "México": "🇲🇽", "África do Sul": "🇿🇦", "Coreia do Sul": "🇰🇷",
-    "Tchéquia": "🇨🇿", "Canadá": "🇨🇦", "Bósnia e Herzegovina": "🇧🇦",
-    "Catar": "🇶🇦", "Suíça": "🇨🇭", "Brasil": "🇧🇷", "Marrocos": "🇲🇦",
-    "Haiti": "🇭🇹", "Escócia": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "EUA": "🇺🇸", "Paraguai": "🇵🇾",
-    "Austrália": "🇦🇺", "Turquia": "🇹🇷", "Alemanha": "🇩🇪", "Curaçao": "🇨🇼",
-    "Costa do Marfim": "🇨🇮", "Equador": "🇪🇨", "Países Baixos": "🇳🇱",
-    "Japão": "🇯🇵", "Suécia": "🇸🇪", "Tunísia": "🇹🇳", "Bélgica": "🇧🇪",
-    "Egito": "🇪🇬", "Irã": "🇮🇷", "Nova Zelândia": "🇳🇿", "Espanha": "🇪🇸",
-    "Cabo Verde": "🇨🇻", "Arábia Saudita": "🇸🇦", "Uruguai": "🇺🇾",
-    "França": "🇫🇷", "Senegal": "🇸🇳", "Iraque": "🇮🇶", "Noruega": "🇳🇴",
-    "Argentina": "🇦🇷", "Argélia": "🇩🇿", "Áustria": "🇦🇹", "Jordânia": "🇯🇴",
-    "Portugal": "🇵🇹", "Congo RD": "🇨🇩", "Uzbequistão": "🇺🇿",
-    "Colômbia": "🇨🇴", "Inglaterra": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Croácia": "🇭🇷",
-    "Gana": "🇬🇭", "Panamá": "🇵🇦",
+PAIS_ISO2 = {
+    "México": "mx", "África do Sul": "za", "Coreia do Sul": "kr",
+    "Tchéquia": "cz", "Canadá": "ca", "Bósnia e Herzegovina": "ba",
+    "Catar": "qa", "Suíça": "ch", "Brasil": "br", "Marrocos": "ma",
+    "Haiti": "ht", "Escócia": "gb-sct", "EUA": "us", "Paraguai": "py",
+    "Austrália": "au", "Turquia": "tr", "Alemanha": "de", "Curaçao": "cw",
+    "Costa do Marfim": "ci", "Equador": "ec", "Países Baixos": "nl",
+    "Japão": "jp", "Suécia": "se", "Tunísia": "tn", "Bélgica": "be",
+    "Egito": "eg", "Irã": "ir", "Nova Zelândia": "nz", "Espanha": "es",
+    "Cabo Verde": "cv", "Arábia Saudita": "sa", "Uruguai": "uy",
+    "França": "fr", "Senegal": "sn", "Iraque": "iq", "Noruega": "no",
+    "Argentina": "ar", "Argélia": "dz", "Áustria": "at", "Jordânia": "jo",
+    "Portugal": "pt", "Congo RD": "cd", "Uzbequistão": "uz",
+    "Colômbia": "co", "Inglaterra": "gb-eng", "Croácia": "hr",
+    "Gana": "gh", "Panamá": "pa",
 }
 
 
 def pais_label(pais: str) -> str:
-    flag = BANDEIRAS.get(pais, "")
-    return f"{flag} {pais}" if flag else pais
+    """Texto simples — para selectbox e expander (não suportam HTML)."""
+    return pais
+
+
+def pais_md(pais: str) -> str:
+    """HTML com imagem de bandeira via flagcdn.com — para st.markdown(unsafe_allow_html=True)."""
+    iso2 = PAIS_ISO2.get(pais, "")
+    if not iso2:
+        return pais
+    img = (f'<img src="https://flagcdn.com/20x15/{iso2}.png" '
+           f'style="vertical-align:middle;margin-right:5px;border-radius:2px">')
+    return f"{img}{pais}"
+
+
+def flag_url(pais: str) -> str:
+    iso2 = PAIS_ISO2.get(pais, "")
+    return f"https://flagcdn.com/20x15/{iso2}.png" if iso2 else ""
 
 
 # Aliases para nomes populares de países que diferem do nome oficial no álbum
@@ -152,7 +167,13 @@ def salvar(updates: list[tuple[int, str, int]]):
 
 def _form_figurinha(fig):
     """Renderiza o formulário de edição de status de uma figurinha."""
-    st.info(f"**{fig['Codigo']}** — {pais_label(fig['Pais'])} / {fig['Descricao']}")
+    st.markdown(
+        f'<div style="background:#d1ecf1;border-left:4px solid #0ea5e9;'
+        f'padding:0.6rem 1rem;border-radius:0.4rem;margin-bottom:0.5rem">'
+        f'<b>{fig["Codigo"]}</b> — {pais_md(fig["Pais"])} / {fig["Descricao"]}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     novo_status = st.radio(
         "Status:",
@@ -350,13 +371,16 @@ with tab_resumo:
     stats["Progresso"] = stats.apply(lambda r: f"{int(r['Tenho'])}/{int(r['Total'])}", axis=1)
     stats["✅"] = stats["Tenho"] == stats["Total"]
     stats = stats.sort_values("Tenho", ascending=False)
-    stats["Seleção"] = stats["Pais"].apply(pais_label)
+    stats["_flag"] = stats["Pais"].apply(flag_url)
 
     st.dataframe(
-        stats[["Seleção", "Progresso", "✅"]],
+        stats[["_flag", "Pais", "Progresso", "✅"]],
         use_container_width=True,
         hide_index=True,
-        column_config={"✅": st.column_config.CheckboxColumn(disabled=True)},
+        column_config={
+            "_flag": st.column_config.ImageColumn(" ", width="small"),
+            "✅": st.column_config.CheckboxColumn(disabled=True),
+        },
     )
 
 
@@ -369,10 +393,7 @@ with tab_time:
     )
     opcoes = ["⭐ FIFA World Cup 2026 (FWC)"] + list(paises)
 
-    escolha = st.selectbox(
-        "Seleção:", opcoes, label_visibility="collapsed",
-        format_func=lambda p: p if p.startswith("⭐") else pais_label(p),
-    )
+    escolha = st.selectbox("Seleção:", opcoes, label_visibility="collapsed")
 
     if escolha.startswith("⭐"):
         time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
@@ -462,7 +483,7 @@ with tab_busca:
             _form_figurinha(resultados.iloc[0])
         else:
             opcoes_label = [
-                f"{r['Codigo']} — {r['Descricao']} ({pais_label(r['Pais'])})"
+                f"{r['Codigo']} — {r['Descricao']} ({r['Pais']})"
                 for _, r in resultados.iterrows()
             ]
             escolha_idx = st.selectbox(
@@ -500,7 +521,13 @@ with tab_scanner:
 
             fig = df[df["Codigo"] == codigo_lido].iloc[0]
             st.success(f"Código detectado: **{fig['Codigo']}**")
-            st.info(f"**{fig['Codigo']}** — {pais_label(fig['Pais'])} / {fig['Descricao']}")
+            st.markdown(
+                f'<div style="background:#d1ecf1;border-left:4px solid #0ea5e9;'
+                f'padding:0.6rem 1rem;border-radius:0.4rem;margin-bottom:0.5rem">'
+                f'<b>{fig["Codigo"]}</b> — {pais_md(fig["Pais"])} / {fig["Descricao"]}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
             st.caption(f"Status atual: {STATUS_LABEL[fig['Status']]}")
 
             st.divider()
@@ -554,7 +581,7 @@ with tab_listas:
                     f"{r['Codigo']} — {r['Descricao']}"
                     for _, r in grupo.iterrows()
                 )
-                with st.expander(f"{pais_label(pais)} — {len(grupo)} faltando"):
+                with st.expander(f"{pais} — {len(grupo)} faltando"):
                     st.code(linhas, language=None)
 
     with sub_rep:
@@ -567,7 +594,7 @@ with tab_listas:
             for _, fig in repetidas.iterrows():
                 extras = int(fig["Repetidas"])
                 sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
-                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({pais_label(fig['Pais'])}){sufixo}")
+                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({fig['Pais']}){sufixo}")
 
             st.code("\n".join(linhas), language=None)
             st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
