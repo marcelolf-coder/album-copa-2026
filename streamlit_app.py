@@ -194,14 +194,47 @@ div[data-testid="column"] .stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# Força tema claro limpando preferências dark do localStorage do browser.
-# streamlit_js_eval roda no contexto real da página (não iframe), com acesso
-# direto ao localStorage. Remove entradas dark e registra 'light' explicitamente.
+# Injeta CSS de fundo branco diretamente no <head> via JS, garantindo que
+# nosso <style> fique SEMPRE POR ÚLTIMO na cascata.
+# MutationObserver reinsere o bloco toda vez que o Streamlit reinjectar
+# seu CSS de modo escuro, garantindo que nunca perdemos a disputa de cascata.
 streamlit_js_eval(js_expressions="""
 (function () {
-    try {
-        localStorage.removeItem('stActiveTheme');
-    } catch (e) {}
+    try { localStorage.removeItem('stActiveTheme'); } catch (e) {}
+
+    var ID = 'copa-theme-override';
+    var CSS = [
+        'html,body{background-color:#E8F5E9!important;color:#1E293B!important}',
+        '.stApp{background-color:#E8F5E9!important;color:#1E293B!important}',
+        '[data-testid="stAppViewContainer"]{background-color:#E8F5E9!important}',
+        'section[data-testid="stMain"]{background-color:#E8F5E9!important}',
+        '[data-testid="stMainBlockContainer"]{background-color:#E8F5E9!important}',
+        '[data-testid="block-container"]{background-color:#E8F5E9!important}',
+        '[data-testid="stHeader"]{background-color:#E8F5E9!important}'
+    ].join('');
+
+    function inject() {
+        var old = document.getElementById(ID);
+        if (old) old.remove();
+        var s = document.createElement('style');
+        s.id = ID;
+        s.textContent = CSS;
+        (document.head || document.documentElement).appendChild(s);
+    }
+
+    inject();
+
+    new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+            var nodes = mutations[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) {
+                if (nodes[j].tagName === 'STYLE' && nodes[j].id !== ID) {
+                    setTimeout(inject, 10);
+                    return;
+                }
+            }
+        }
+    }).observe(document.head || document.documentElement, { childList: true });
 })()
 """, key="force_light_theme")
 
