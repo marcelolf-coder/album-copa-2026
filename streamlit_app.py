@@ -538,8 +538,8 @@ with tab_resumo:
 
     # Excluir FWC, sticker 00 e CC da tabela de seleções
     _excluir_mask = (
-        df["Codigo"].str.startswith("FWC") |
-        df["Codigo"].str.startswith("CC") |
+        df["Codigo"].str.startswith("FWC", na=False) |
+        df["Codigo"].str.startswith("CC", na=False) |
         (df["Codigo"] == "00")
     )
     times_df = df[~_excluir_mask]
@@ -569,8 +569,8 @@ with tab_resumo:
 with tab_time:
     df = load_df()
     _excluir_especiais = (
-        df["Codigo"].str.startswith("FWC") |
-        df["Codigo"].str.startswith("CC") |
+        df["Codigo"].str.startswith("FWC", na=False) |
+        df["Codigo"].str.startswith("CC", na=False) |
         (df["Codigo"] == "00")
     )
     paises = sorted(df[~_excluir_especiais]["Pais"].unique())
@@ -584,12 +584,12 @@ with tab_time:
         # ── Grid de seleção ──────────────────────────────────────────────────
         st.caption("Toque em uma seleção para ver e editar as figurinhas.")
 
-        fwc_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")]
+        fwc_df = df[df["Codigo"].str.startswith("FWC", na=False) | (df["Codigo"] == "00")]
         fwc_tenho = int(fwc_df["Status"].isin(["tenho", "repetida"]).sum())
         fwc_total = len(fwc_df)
         fwc_check = " ✅" if fwc_tenho == fwc_total else ""
 
-        cc_df = df[df["Codigo"].str.startswith("CC")]
+        cc_df = df[df["Codigo"].str.startswith("CC", na=False)]
         cc_tenho = int(cc_df["Status"].isin(["tenho", "repetida"]).sum())
         cc_total = len(cc_df)
         cc_check = " ✅" if cc_tenho == cc_total else ""
@@ -637,10 +637,10 @@ with tab_time:
             st.rerun()
 
         if escolha == "_FWC_":
-            time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
+            time_df = df[df["Codigo"].str.startswith("FWC", na=False) | (df["Codigo"] == "00")].copy()
             st.subheader("⭐ FIFA World Cup 2026")
         elif escolha == "_CC_":
-            time_df = df[df["Codigo"].str.startswith("CC")].copy()
+            time_df = df[df["Codigo"].str.startswith("CC", na=False)].copy()
             st.subheader("🥤 Coca-Cola — Figurinhas Promocionais")
             st.caption("Encontradas embaixo do rótulo de garrafas Coca-Cola (600ml e 2,5L).")
         else:
@@ -691,10 +691,10 @@ with tab_time:
                 df_novo = load_df()
                 if escolha == "_FWC_":
                     time_novo = df_novo[
-                        df_novo["Codigo"].str.startswith("FWC") | (df_novo["Codigo"] == "00")
+                        df_novo["Codigo"].str.startswith("FWC", na=False) | (df_novo["Codigo"] == "00")
                     ]
                 elif escolha == "_CC_":
-                    time_novo = df_novo[df_novo["Codigo"].str.startswith("CC")]
+                    time_novo = df_novo[df_novo["Codigo"].str.startswith("CC", na=False)]
                 else:
                     time_novo = df_novo[df_novo["Pais"] == escolha]
                 if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
