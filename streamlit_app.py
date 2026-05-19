@@ -34,22 +34,19 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── Copa 2026: força tema claro ── */
+/* ── Copa 2026 — Redesign USA · México · Canadá ── */
 
-/* ESTRATÉGIA 1: Redefinir variáveis CSS no .stApp (vence :root na cascata
-   porque .stApp está mais próximo dos filhos — herdado antes de :root) */
+/* Variáveis CSS herdadas pelos filhos antes de :root */
 .stApp, .main, body {
     --background-color: #FFFFFF;
-    --secondary-background-color: #EFF6FF;
-    --text-color: #1E293B;
-    --primary-color: #1E40AF;
-    --font: "Source Sans Pro", sans-serif;
+    --secondary-background-color: #EEF2FF;
+    --text-color: #0D1B2A;
+    --primary-color: #003DA5;
 }
 
-/* ESTRATÉGIA 2: Sobrescrever propriedades diretas com !important */
+/* Fundo branco em todos os contêineres principais */
 html, body,
-.stApp,
-.main,
+.stApp, .main,
 section[data-testid="stMain"],
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewContainer"] > section,
@@ -60,7 +57,7 @@ section[data-testid="stMain"],
 [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stBottom"] {
     background-color: #FFFFFF !important;
-    color: #1E293B !important;
+    color: #0D1B2A !important;
 }
 
 /* Header */
@@ -75,7 +72,7 @@ section[data-testid="stMain"],
 [data-testid="stSidebar"],
 section[data-testid="stSidebar"] > div,
 [data-testid="stSidebarContent"] {
-    background-color: #EFF6FF !important;
+    background-color: #EEF2FF !important;
 }
 
 /* Fundo secundário: inputs, selects, expanders, métricas */
@@ -92,45 +89,51 @@ section[data-testid="stSidebar"] > div,
 [data-testid="metric-container"],
 [data-testid="stMetricContainer"],
 [data-testid="stCaptionContainer"] {
-    background-color: #EFF6FF !important;
-    color: #1E293B !important;
+    background-color: #EEF2FF !important;
+    color: #0D1B2A !important;
 }
 
-/* Texto em todos os elementos */
+/* Texto */
 p, span, label, div, h1, h2, h3, h4, h5, h6, li {
-    color: #1E293B !important;
+    color: #0D1B2A !important;
 }
 
-/* Botões primários */
+/* Botões primários — azul FIFA */
 button[data-testid="baseButton-primary"],
 .stButton > button[kind="primary"] {
-    background-color: #1E40AF !important;
-    border-color: #1E40AF !important;
+    background-color: #003DA5 !important;
+    border-color: #003DA5 !important;
     color: #FFFFFF !important;
     font-size: 1rem !important;
     padding: 0.6rem !important;
 }
 button[data-testid="baseButton-primary"]:hover,
 .stButton > button[kind="primary"]:hover {
-    background-color: #1E3A8A !important;
-    border-color: #1E3A8A !important;
+    background-color: #002d7a !important;
+    border-color: #002d7a !important;
 }
 
 /* Botões secundários */
 .stButton > button:not([kind="primary"]) {
     background-color: #F8FAFC !important;
-    color: #1E293B !important;
+    color: #0D1B2A !important;
     border: 1px solid #CBD5E1 !important;
 }
 .stButton > button:not([kind="primary"]):hover {
-    background-color: #EFF6FF !important;
-    border-color: #1E40AF !important;
-    color: #1E40AF !important;
+    background-color: #EEF2FF !important;
+    border-color: #003DA5 !important;
+    color: #003DA5 !important;
 }
 
-/* Barra de progresso */
-[data-testid="stProgressBar"] > div { background-color: #DBEAFE !important; }
-[data-testid="stProgressBar"] > div > div { background-color: #1E40AF !important; }
+/* Barra de progresso — dourada (cor do troféu) */
+[data-testid="stProgressBar"] > div {
+    background-color: #E8E8E8 !important;
+    border-radius: 99px !important;
+}
+[data-testid="stProgressBar"] > div > div {
+    background: linear-gradient(90deg, #C8962B, #E8B800) !important;
+    border-radius: 99px !important;
+}
 
 /* Tabs */
 div[data-testid="stTabs"] > div:first-child { overflow-x: auto; white-space: nowrap; }
@@ -139,57 +142,57 @@ button[data-baseweb="tab"] {
     background-color: transparent !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
-    border-bottom-color: #1E40AF !important;
-    color: #1E40AF !important;
+    border-bottom-color: #C8962B !important;
+    color: #003DA5 !important;
+    font-weight: 600 !important;
 }
-[data-testid="stTabContent"] {
-    background-color: #FFFFFF !important;
-}
+[data-testid="stTabContent"] { background-color: #FFFFFF !important; }
 
 /* Métricas */
-div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #1E293B !important; }
+div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #0D1B2A !important; }
 div[data-testid="stMetricLabel"] { color: #64748B !important; }
-div[data-testid="stMetricDelta"] { color: #1E40AF !important; }
+div[data-testid="stMetricDelta"] { color: #C8962B !important; }
 
-/* Grid */
+/* Grid de seleções */
 div[data-testid="column"] { padding: 0 2px !important; }
-div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; color: #1E293B !important; }
-div[data-testid="stSelectbox"] div { font-size: 0.75rem !important; color: #1E293B !important; }
+div[data-testid="stSelectbox"] label { font-size: 0.75rem !important; color: #0D1B2A !important; }
+div[data-testid="stSelectbox"] div   { font-size: 0.75rem !important; color: #0D1B2A !important; }
 
 /* Links */
-a { color: #1E40AF !important; }
+a { color: #003DA5 !important; }
 
-/* Modo escuro do sistema: garante override mesmo com prefers-color-scheme: dark */
+/* Override dark mode do sistema */
 @media (prefers-color-scheme: dark) {
-    html, body,
-    .stApp, .main,
+    html, body, .stApp, .main,
     section[data-testid="stMain"],
     [data-testid="stAppViewContainer"],
     [data-testid="stMainBlockContainer"],
     [data-testid="block-container"] {
         background-color: #FFFFFF !important;
-        color: #1E293B !important;
+        color: #0D1B2A !important;
     }
     [data-testid="stHeader"] { background-color: #FFFFFF !important; }
-    p, span, label, div { color: #1E293B !important; }
+    p, span, label, div { color: #0D1B2A !important; }
 }
 
-/* Card buttons (grid de times) */
+/* Cards do grid de times — gradiente sutil + sombra */
 div[data-testid="column"] .stButton > button {
-    border-radius: 12px !important;
-    border: 1px solid #CBD5E1 !important;
+    background: linear-gradient(145deg, #FFFFFF, #F4F7FF) !important;
+    border: 1.5px solid #D1D5DB !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07) !important;
     padding: 0.5rem 0.25rem !important;
     font-size: 0.75rem !important;
     line-height: 1.5 !important;
-    min-height: 72px !important;
+    min-height: 68px !important;
     white-space: pre-line !important;
-    background-color: #F8FAFC !important;
-    color: #1E293B !important;
+    color: #0D1B2A !important;
 }
 div[data-testid="column"] .stButton > button:hover {
-    background-color: #EFF6FF !important;
-    border-color: #1E40AF !important;
-    color: #1E40AF !important;
+    background: linear-gradient(145deg, #EEF2FF, #DBEAFE) !important;
+    border-color: #003DA5 !important;
+    color: #003DA5 !important;
+    box-shadow: 0 3px 10px rgba(0,61,165,0.18) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -533,7 +536,28 @@ tab_resumo, tab_time, tab_busca, tab_scanner, tab_pacote, tab_listas = st.tabs(
 
 # ── Resumo ───────────────────────────────────────────────────────────────────
 with tab_resumo:
-    st.title("⚽ Album Copa 2026")
+    st.markdown("""
+<div style="background:linear-gradient(135deg,#001F5B 0%,#003DA5 55%,#1565C0 100%);
+     border-radius:16px;padding:24px 20px;margin-bottom:4px;text-align:center;
+     box-shadow:0 4px 20px rgba(0,61,165,0.25);">
+  <div style="font-size:0.78rem;color:rgba(255,255,255,0.65);letter-spacing:2px;
+              text-transform:uppercase;margin-bottom:4px;">
+    🏆 FIFA World Cup 2026
+  </div>
+  <div style="font-size:1.9rem;font-weight:900;color:#FFFFFF;letter-spacing:-0.5px;
+              margin-bottom:10px;">
+    ⚽ Álbum de Figurinhas
+  </div>
+  <div style="font-size:1rem;color:rgba(255,255,255,0.88);margin-bottom:10px;">
+    🇺🇸 EUA &nbsp;·&nbsp; 🇲🇽 México &nbsp;·&nbsp; 🇨🇦 Canadá
+  </div>
+  <div style="display:inline-block;background:rgba(255,255,255,0.12);
+              border-radius:20px;padding:4px 14px;
+              font-size:0.8rem;color:#FFD700;font-weight:600;">
+    Junho — Julho 2026
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     if st.button("🔄 Atualizar", use_container_width=True):
         load_df.clear()
