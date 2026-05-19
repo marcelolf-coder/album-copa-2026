@@ -85,10 +85,11 @@ section[data-testid="stSidebar"] > div,
     color: #0D1B2A !important;
 }
 
-/* Texto */
-p, span, label, div, h1, h2, h3, h4, h5, h6, li {
-    color: #0D1B2A !important;
-}
+/* Texto — sem 'div'/'span' para não sobrescrever estilos inline do hero banner */
+p, label, h1, h2, h3, h4, h5, h6, li { color: #0D1B2A !important; }
+/* Botões primários sempre texto branco */
+button[data-testid="baseButton-primary"],
+button[data-testid="baseButton-primary"] * { color: #FFFFFF !important; }
 
 /* Botões primários — azul FIFA (data-testid é o atributo real no DOM) */
 button[data-testid="baseButton-primary"] {
@@ -157,7 +158,7 @@ a { color: #003DA5 !important; }
         color: #0D1B2A !important;
     }
     [data-testid="stHeader"] { background-color: #FFFFFF !important; }
-    p, span, label, div { color: #0D1B2A !important; }
+    p, label { color: #0D1B2A !important; }
 }
 
 /* Cards do grid de times — gradiente sutil + sombra */
@@ -599,12 +600,38 @@ with tab_resumo:
     stats = stats.sort_values("Tenho", ascending=False)
     stats["Seleção"] = stats["Pais"].apply(pais_label)
 
-    st.dataframe(
-        stats[["Seleção", "Progresso", "✅"]],
-        use_container_width=True,
-        hide_index=True,
-        column_config={"✅": st.column_config.CheckboxColumn(disabled=True)},
-    )
+    _rows = ""
+    for _i, (_, _r) in enumerate(stats.iterrows()):
+        _pt = _r["Tenho"] / _r["Total"] * 100
+        _bg = "#FAFBFF" if _i % 2 == 0 else "#FFFFFF"
+        _ck = "✅" if _r["✅"] else ""
+        _rows += f"""<tr style="background:{_bg};">
+          <td style="padding:7px 10px;font-size:0.83rem;color:#0D1B2A;border-bottom:1px solid #F1F5F9;">{_r["Seleção"]}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #F1F5F9;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <div style="flex:1;background:#E2E8F0;border-radius:99px;height:10px;overflow:hidden;min-width:60px;">
+                <div style="background:linear-gradient(90deg,#B8720A,#E8B800);width:{_pt:.0f}%;height:100%;border-radius:99px;"></div>
+              </div>
+              <span style="font-size:0.76rem;color:#64748B;white-space:nowrap;">{int(_r["Tenho"])}/{int(_r["Total"])}</span>
+            </div>
+          </td>
+          <td style="padding:7px 10px;text-align:center;font-size:0.9rem;border-bottom:1px solid #F1F5F9;">{_ck}</td>
+        </tr>"""
+
+    st.markdown(f"""
+<div style="border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;margin-top:8px;">
+  <table style="width:100%;border-collapse:collapse;background:#FFFFFF;">
+    <thead>
+      <tr style="background:#EEF2FF;">
+        <th style="padding:9px 10px;text-align:left;font-size:0.78rem;color:#003DA5;font-weight:700;letter-spacing:0.03em;border-bottom:2px solid #D1D5DB;">SELEÇÃO</th>
+        <th style="padding:9px 10px;text-align:left;font-size:0.78rem;color:#003DA5;font-weight:700;letter-spacing:0.03em;border-bottom:2px solid #D1D5DB;">PROGRESSO</th>
+        <th style="padding:9px 10px;text-align:center;font-size:0.78rem;color:#003DA5;font-weight:700;letter-spacing:0.03em;border-bottom:2px solid #D1D5DB;">OK</th>
+      </tr>
+    </thead>
+    <tbody>{_rows}</tbody>
+  </table>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ── Por Time ─────────────────────────────────────────────────────────────────
