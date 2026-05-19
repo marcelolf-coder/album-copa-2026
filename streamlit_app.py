@@ -34,15 +34,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── Copa 2026 — Redesign USA · México · Canadá ── */
-
-/* Variáveis CSS herdadas pelos filhos antes de :root */
-.stApp, .main, body {
-    --background-color: #FFFFFF;
-    --secondary-background-color: #EEF2FF;
-    --text-color: #0D1B2A;
-    --primary-color: #003DA5;
-}
+/* ── Copa 2026 — Redesign ── */
 
 /* Fundo branco em todos os contêineres principais */
 html, body,
@@ -98,41 +90,33 @@ p, span, label, div, h1, h2, h3, h4, h5, h6, li {
     color: #0D1B2A !important;
 }
 
-/* Botões primários — azul FIFA */
-button[data-testid="baseButton-primary"],
-.stButton > button[kind="primary"] {
+/* Botões primários — azul FIFA (data-testid é o atributo real no DOM) */
+button[data-testid="baseButton-primary"] {
     background-color: #003DA5 !important;
     border-color: #003DA5 !important;
     color: #FFFFFF !important;
-    font-size: 1rem !important;
-    padding: 0.6rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 0.55rem 1rem !important;
+    transition: background-color 0.2s !important;
 }
-button[data-testid="baseButton-primary"]:hover,
-.stButton > button[kind="primary"]:hover {
+button[data-testid="baseButton-primary"]:hover {
     background-color: #002d7a !important;
     border-color: #002d7a !important;
 }
 
 /* Botões secundários */
-.stButton > button:not([kind="primary"]) {
+button[data-testid="baseButton-secondary"] {
     background-color: #F8FAFC !important;
     color: #0D1B2A !important;
-    border: 1px solid #CBD5E1 !important;
+    border: 1.5px solid #CBD5E1 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
 }
-.stButton > button:not([kind="primary"]):hover {
+button[data-testid="baseButton-secondary"]:hover {
     background-color: #EEF2FF !important;
     border-color: #003DA5 !important;
     color: #003DA5 !important;
-}
-
-/* Barra de progresso — dourada (cor do troféu) */
-[data-testid="stProgressBar"] > div {
-    background-color: #E8E8E8 !important;
-    border-radius: 99px !important;
-}
-[data-testid="stProgressBar"] > div > div {
-    background: linear-gradient(90deg, #C8962B, #E8B800) !important;
-    border-radius: 99px !important;
 }
 
 /* Tabs */
@@ -140,17 +124,18 @@ div[data-testid="stTabs"] > div:first-child { overflow-x: auto; white-space: now
 button[data-baseweb="tab"] {
     color: #64748B !important;
     background-color: transparent !important;
+    font-weight: 500 !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
     border-bottom-color: #C8962B !important;
     color: #003DA5 !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
 }
 [data-testid="stTabContent"] { background-color: #FFFFFF !important; }
 
 /* Métricas */
-div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #0D1B2A !important; }
-div[data-testid="stMetricLabel"] { color: #64748B !important; }
+div[data-testid="stMetricValue"] { font-size: 2.2rem !important; font-weight: 700 !important; color: #0D1B2A !important; }
+div[data-testid="stMetricLabel"] { font-size: 0.8rem !important; font-weight: 600 !important; color: #64748B !important; }
 div[data-testid="stMetricDelta"] { color: #C8962B !important; }
 
 /* Grid de seleções */
@@ -176,7 +161,7 @@ a { color: #003DA5 !important; }
 }
 
 /* Cards do grid de times — gradiente sutil + sombra */
-div[data-testid="column"] .stButton > button {
+div[data-testid="column"] button[data-testid="baseButton-secondary"] {
     background: linear-gradient(145deg, #FFFFFF, #F4F7FF) !important;
     border: 1.5px solid #D1D5DB !important;
     border-radius: 10px !important;
@@ -188,7 +173,7 @@ div[data-testid="column"] .stButton > button {
     white-space: pre-line !important;
     color: #0D1B2A !important;
 }
-div[data-testid="column"] .stButton > button:hover {
+div[data-testid="column"] button[data-testid="baseButton-secondary"]:hover {
     background: linear-gradient(145deg, #EEF2FF, #DBEAFE) !important;
     border-color: #003DA5 !important;
     color: #003DA5 !important;
@@ -559,7 +544,7 @@ with tab_resumo:
 </div>
 """, unsafe_allow_html=True)
 
-    if st.button("🔄 Atualizar", use_container_width=True):
+    if st.button("🔄 Atualizar dados", use_container_width=True, type="primary"):
         load_df.clear()
         st.rerun()
 
@@ -569,8 +554,21 @@ with tab_resumo:
     faltante_n = (df["Status"] == "faltante").sum()
     repetida_n = (df["Status"] == "repetida").sum()
 
-    st.progress(int(tenho_n) / total)
-    st.caption(f"{tenho_n} de {total} ({tenho_n/total*100:.1f}% completo)")
+    _pct = tenho_n / total * 100
+    st.markdown(f"""
+<div style="margin:14px 0 2px;">
+  <div style="background:#E2E8F0;border-radius:99px;height:18px;overflow:hidden;
+              box-shadow:inset 0 1px 3px rgba(0,0,0,0.08);">
+    <div style="background:linear-gradient(90deg,#B8720A,#E8B800);
+                width:{_pct:.1f}%;height:100%;border-radius:99px;
+                box-shadow:0 1px 4px rgba(200,150,43,0.4);"></div>
+  </div>
+</div>
+<p style="font-size:0.82rem;color:#64748B;margin:4px 0 10px;text-align:right;">
+  <strong style="color:#0D1B2A;">{int(tenho_n)}</strong> de {int(total)} figurinhas
+  &nbsp;·&nbsp; <strong style="color:#C8962B;">{_pct:.1f}%</strong> completo
+</p>
+""", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     c1.metric("🟢 Tenho", int(tenho_n))
