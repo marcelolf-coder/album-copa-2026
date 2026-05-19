@@ -204,13 +204,13 @@ streamlit_js_eval(js_expressions="""
 
     var ID = 'copa-theme-override';
     var CSS = [
-        'html,body{background-color:#E8F5E9!important;color:#1E293B!important}',
-        '.stApp{background-color:#E8F5E9!important;color:#1E293B!important}',
-        '[data-testid="stAppViewContainer"]{background-color:#E8F5E9!important}',
-        'section[data-testid="stMain"]{background-color:#E8F5E9!important}',
-        '[data-testid="stMainBlockContainer"]{background-color:#E8F5E9!important}',
-        '[data-testid="block-container"]{background-color:#E8F5E9!important}',
-        '[data-testid="stHeader"]{background-color:#E8F5E9!important}'
+        'html,body{background-color:#FFFFFF!important;color:#1E293B!important}',
+        '.stApp{background-color:#FFFFFF!important;color:#1E293B!important}',
+        '[data-testid="stAppViewContainer"]{background-color:#FFFFFF!important}',
+        'section[data-testid="stMain"]{background-color:#FFFFFF!important}',
+        '[data-testid="stMainBlockContainer"]{background-color:#FFFFFF!important}',
+        '[data-testid="block-container"]{background-color:#FFFFFF!important}',
+        '[data-testid="stHeader"]{background-color:#FFFFFF!important}'
     ].join('');
 
     function inject() {
