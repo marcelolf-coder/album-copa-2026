@@ -22,8 +22,8 @@ import gspread
 import numpy as np
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from PIL import Image, ImageEnhance, ImageFilter
+from streamlit_js_eval import streamlit_js_eval
 
 st.set_page_config(
     page_title="Album Copa 2026",
@@ -194,30 +194,29 @@ div[data-testid="column"] .stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# Limpa preferência de tema escuro do localStorage via iframe same-origin.
-# Só remove entradas que indicam tema dark; entradas "light" são preservadas.
-# Se o iframe não tiver acesso ao localStorage do pai, o try-catch falha silenciosamente.
-components.html("""
-<script>
+# Força tema claro limpando preferências dark do localStorage do browser.
+# streamlit_js_eval roda no contexto real da página (não iframe), com acesso
+# direto ao localStorage. Remove entradas dark e registra 'light' explicitamente.
+streamlit_js_eval(js_expressions="""
 (function () {
     try {
-        var s = window.parent.localStorage;
+        var s = localStorage;
         var toRemove = [];
         for (var i = 0; i < s.length; i++) {
             var k = s.key(i);
             if (!k) continue;
             var v = s.getItem(k) || '';
-            var isDarkKey = k.toLowerCase().includes('theme');
-            var isDarkVal = v === 'dark' || v.includes('"base":"dark"') ||
-                            v.includes('"backgroundColor":"#0E1117"') ||
-                            v.includes('"backgroundColor":"#0e1117"');
-            if (isDarkKey && isDarkVal) toRemove.push(k);
+            if (k.toLowerCase().includes('theme') &&
+                (v === 'dark' || v.includes('"base":"dark"') ||
+                 v.toLowerCase().includes('"backgroundcolor":"#0e1117"'))) {
+                toRemove.push(k);
+            }
         }
         toRemove.forEach(function (k) { s.removeItem(k); });
-    } catch (e) { /* cross-origin: não tem acesso */ }
-})();
-</script>
-""", height=0)
+        s.setItem('streamlit:activeTheme', 'light');
+    } catch (e) {}
+})()
+""", key="force_light_theme")
 
 # ---------------------------------------------------------------------------
 # Constantes
@@ -461,7 +460,7 @@ def get_ocr():
 
 
 _CODIGO_RE = re.compile(
-    r'\b(FWC|ALG|ARG|AUS|AUT|BEL|BIH|BRA|CAN|CIV|COD|COL|CPV|CRO|CUW|CZE|'
+    r'\b(FWC|CC|ALG|ARG|AUS|AUT|BEL|BIH|BRA|CAN|CIV|COD|COL|CPV|CRO|CUW|CZE|'
     r'ECU|EGY|ENG|ESP|FRA|GER|GHA|HAI|IRN|IRQ|JOR|JPN|KOR|KSA|MAR|MEX|NED|'
     r'NOR|NZL|PAN|PAR|POR|QAT|RSA|SCO|SEN|SUI|SWE|TUN|TUR|URU|USA|UZB)\s*(\d{1,2})\b',
     re.IGNORECASE,
@@ -537,7 +536,13 @@ with tab_resumo:
     st.divider()
     st.subheader("Por seleção")
 
-    times_df = df[~(df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00"))]
+    # Excluir FWC, sticker 00 e CC da tabela de seleções
+    _excluir_mask = (
+        df["Codigo"].str.startswith("FWC") |
+        df["Codigo"].str.startswith("CC") |
+        (df["Codigo"] == "00")
+    )
+    times_df = df[~_excluir_mask]
     stats = (
         times_df.groupby("Pais")["Status"]
         .apply(lambda s: pd.Series({
@@ -563,9 +568,12 @@ with tab_resumo:
 # ── Por Time ─────────────────────────────────────────────────────────────────
 with tab_time:
     df = load_df()
-    paises = sorted(
-        df[~(df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00"))]["Pais"].unique()
+    _excluir_especiais = (
+        df["Codigo"].str.startswith("FWC") |
+        df["Codigo"].str.startswith("CC") |
+        (df["Codigo"] == "00")
     )
+    paises = sorted(df[~_excluir_especiais]["Pais"].unique())
 
     pais_tenho = {
         p: int(df[df["Pais"] == p]["Status"].isin(["tenho", "repetida"]).sum())
@@ -580,13 +588,29 @@ with tab_time:
         fwc_tenho = int(fwc_df["Status"].isin(["tenho", "repetida"]).sum())
         fwc_total = len(fwc_df)
         fwc_check = " ✅" if fwc_tenho == fwc_total else ""
-        if st.button(
-            f"⭐ FIFA World Cup 2026  {fwc_tenho}/{fwc_total}{fwc_check}",
-            use_container_width=True,
-            key="card_fwc",
-        ):
-            st.session_state.time_sel = "_FWC_"
-            st.rerun()
+
+        cc_df = df[df["Codigo"].str.startswith("CC")]
+        cc_tenho = int(cc_df["Status"].isin(["tenho", "repetida"]).sum())
+        cc_total = len(cc_df)
+        cc_check = " ✅" if cc_tenho == cc_total else ""
+
+        col_fwc, col_cc = st.columns(2)
+        with col_fwc:
+            if st.button(
+                f"⭐ FWC  {fwc_tenho}/{fwc_total}{fwc_check}",
+                use_container_width=True,
+                key="card_fwc",
+            ):
+                st.session_state.time_sel = "_FWC_"
+                st.rerun()
+        with col_cc:
+            if st.button(
+                f"🥤 Coca-Cola  {cc_tenho}/{cc_total}{cc_check}",
+                use_container_width=True,
+                key="card_cc",
+            ):
+                st.session_state.time_sel = "_CC_"
+                st.rerun()
 
         st.write("")
 
@@ -615,6 +639,10 @@ with tab_time:
         if escolha == "_FWC_":
             time_df = df[df["Codigo"].str.startswith("FWC") | (df["Codigo"] == "00")].copy()
             st.subheader("⭐ FIFA World Cup 2026")
+        elif escolha == "_CC_":
+            time_df = df[df["Codigo"].str.startswith("CC")].copy()
+            st.subheader("🥤 Coca-Cola — Figurinhas Promocionais")
+            st.caption("Encontradas embaixo do rótulo de garrafas Coca-Cola (600ml e 2,5L).")
         else:
             time_df = df[df["Pais"] == escolha].copy()
             st.subheader(pais_label(escolha))
@@ -665,6 +693,8 @@ with tab_time:
                     time_novo = df_novo[
                         df_novo["Codigo"].str.startswith("FWC") | (df_novo["Codigo"] == "00")
                     ]
+                elif escolha == "_CC_":
+                    time_novo = df_novo[df_novo["Codigo"].str.startswith("CC")]
                 else:
                     time_novo = df_novo[df_novo["Pais"] == escolha]
                 if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
