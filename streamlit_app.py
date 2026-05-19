@@ -200,20 +200,7 @@ div[data-testid="column"] .stButton > button:hover {
 streamlit_js_eval(js_expressions="""
 (function () {
     try {
-        var s = localStorage;
-        var toRemove = [];
-        for (var i = 0; i < s.length; i++) {
-            var k = s.key(i);
-            if (!k) continue;
-            var v = s.getItem(k) || '';
-            if (k.toLowerCase().includes('theme') &&
-                (v === 'dark' || v.includes('"base":"dark"') ||
-                 v.toLowerCase().includes('"backgroundcolor":"#0e1117"'))) {
-                toRemove.push(k);
-            }
-        }
-        toRemove.forEach(function (k) { s.removeItem(k); });
-        s.setItem('streamlit:activeTheme', 'light');
+        localStorage.removeItem('stActiveTheme');
     } catch (e) {}
 })()
 """, key="force_light_theme")
