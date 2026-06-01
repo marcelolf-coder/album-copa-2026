@@ -759,7 +759,7 @@ with tab_time:
         tenho_time = int(time_df["Status"].isin(["tenho", "repetida"]).sum())
         total_time = len(time_df)
 
-        st.progress(tenho_time / total_time)
+        st.progress(tenho_time / total_time if total_time > 0 else 0.0)
         st.caption(f"{tenho_time}/{total_time} figurinhas")
         if tenho_time == total_time:
             st.success("Time completo! 🏆")
