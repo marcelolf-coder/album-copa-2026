@@ -738,9 +738,30 @@ with tab_time:
         # ── Detalhe do time ──────────────────────────────────────────────────
         escolha = st.session_state.time_sel
 
-        if st.button("← Voltar", key="voltar_time"):
-            st.session_state.time_sel = None
-            st.rerun()
+        _sequencia = (
+            ["_INTRO_", "_FWC_HOST_"]
+            + [nome for _, nome in TEAMS]
+            + ["_FWC_HIST_", "_CC_"]
+        )
+        _idx_atual = _sequencia.index(escolha) if escolha in _sequencia else -1
+        _proximo = _sequencia[_idx_atual + 1] if _idx_atual >= 0 and _idx_atual + 1 < len(_sequencia) else None
+
+        col_voltar, col_prox = st.columns(2)
+        with col_voltar:
+            if st.button("← Voltar", key="voltar_time"):
+                st.session_state.time_sel = None
+                st.rerun()
+        with col_prox:
+            if _proximo is not None:
+                if _proximo in ("_INTRO_", "_FWC_HOST_", "_FWC_HIST_", "_CC_"):
+                    _label_prox = {"_INTRO_": "📖 Introdução", "_FWC_HOST_": "⭐ FWC — Host Countries",
+                                   "_FWC_HIST_": "🏆 FWC — History", "_CC_": "🥤 Coca-Cola"}[_proximo]
+                else:
+                    _flag = BANDEIRAS.get(_proximo, "")
+                    _label_prox = f"{_flag} {_proximo}"
+                if st.button(f"{_label_prox} →", key="prox_time", use_container_width=True):
+                    st.session_state.time_sel = _proximo
+                    st.rerun()
 
         if escolha == "_INTRO_":
             time_df = df[df["Codigo"] == "00"].copy()
