@@ -744,22 +744,29 @@ with tab_time:
             + ["_FWC_HIST_", "_CC_"]
         )
         _idx_atual = _sequencia.index(escolha) if escolha in _sequencia else -1
+        _anterior = _sequencia[_idx_atual - 1] if _idx_atual > 0 else None
         _proximo = _sequencia[_idx_atual + 1] if _idx_atual >= 0 and _idx_atual + 1 < len(_sequencia) else None
 
-        col_voltar, col_prox = st.columns(2)
+        def _label_secao(key: str) -> str:
+            especiais = {"_INTRO_": "📖 Introdução", "_FWC_HOST_": "⭐ FWC — Host Countries",
+                         "_FWC_HIST_": "🏆 FWC — History", "_CC_": "🥤 Coca-Cola"}
+            if key in especiais:
+                return especiais[key]
+            return f"{BANDEIRAS.get(key, '')} {key}"
+
+        col_voltar, col_ant, col_prox = st.columns([1, 2, 2])
         with col_voltar:
-            if st.button("← Voltar", key="voltar_time"):
+            if st.button("← Lista", key="voltar_time", use_container_width=True):
                 st.session_state.time_sel = None
                 st.rerun()
+        with col_ant:
+            if _anterior is not None:
+                if st.button(f"← {_label_secao(_anterior)}", key="ant_time", use_container_width=True):
+                    st.session_state.time_sel = _anterior
+                    st.rerun()
         with col_prox:
             if _proximo is not None:
-                if _proximo in ("_INTRO_", "_FWC_HOST_", "_FWC_HIST_", "_CC_"):
-                    _label_prox = {"_INTRO_": "📖 Introdução", "_FWC_HOST_": "⭐ FWC — Host Countries",
-                                   "_FWC_HIST_": "🏆 FWC — History", "_CC_": "🥤 Coca-Cola"}[_proximo]
-                else:
-                    _flag = BANDEIRAS.get(_proximo, "")
-                    _label_prox = f"{_flag} {_proximo}"
-                if st.button(f"{_label_prox} →", key="prox_time", use_container_width=True):
+                if st.button(f"{_label_secao(_proximo)} →", key="prox_time", use_container_width=True):
                     st.session_state.time_sel = _proximo
                     st.rerun()
 
