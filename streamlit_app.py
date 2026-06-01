@@ -335,6 +335,10 @@ def load_df() -> pd.DataFrame:
     df["Status"] = df["Status"].where(df["Status"].isin(STATUS_OPTIONS), "faltante")
     df["Repetidas"] = pd.to_numeric(df.get("Repetidas", 0), errors="coerce").fillna(0).astype(int)
     df["Descricao"] = df["Descricao"].astype(str)
+    df["Codigo"] = df["Codigo"].astype(str).str.strip().str.zfill(2).where(
+        df["Codigo"].astype(str).str.strip().str.match(r"^\d+$"),
+        df["Codigo"].astype(str).str.strip(),
+    )
     df["_row"] = range(2, len(df) + 2)
     return df
 
