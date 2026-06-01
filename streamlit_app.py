@@ -654,32 +654,33 @@ with tab_time:
         # ── Grid de seleção ──────────────────────────────────────────────────
         st.caption("Toque em uma seleção para ver e editar as figurinhas.")
 
-        fwc_df = df[df["Codigo"].str.startswith("FWC", na=False) | (df["Codigo"] == "00")]
-        fwc_tenho = int(fwc_df["Status"].isin(["tenho", "repetida"]).sum())
-        fwc_total = len(fwc_df)
-        fwc_check = " ✅" if fwc_tenho == fwc_total else ""
+        intro_df = df[df["Codigo"] == "00"]
+        intro_tenho = int(intro_df["Status"].isin(["tenho", "repetida"]).sum())
+        intro_total = len(intro_df)
+        intro_check = " ✅" if intro_tenho == intro_total else ""
 
-        cc_df = df[df["Codigo"].str.startswith("CC", na=False)]
-        cc_tenho = int(cc_df["Status"].isin(["tenho", "repetida"]).sum())
-        cc_total = len(cc_df)
-        cc_check = " ✅" if cc_tenho == cc_total else ""
+        fwc_host_codes = [f"FWC{i}" for i in range(1, 9)]
+        fwc_host_df = df[df["Codigo"].isin(fwc_host_codes)]
+        fwc_host_tenho = int(fwc_host_df["Status"].isin(["tenho", "repetida"]).sum())
+        fwc_host_total = len(fwc_host_df)
+        fwc_host_check = " ✅" if fwc_host_tenho == fwc_host_total else ""
 
-        col_fwc, col_cc = st.columns(2)
-        with col_fwc:
+        col_intro, col_fwc_host = st.columns(2)
+        with col_intro:
             if st.button(
-                f"⭐ FWC  {fwc_tenho}/{fwc_total}{fwc_check}",
+                f"📖 Introdução  {intro_tenho}/{intro_total}{intro_check}",
                 use_container_width=True,
-                key="card_fwc",
+                key="card_intro",
             ):
-                st.session_state.time_sel = "_FWC_"
+                st.session_state.time_sel = "_INTRO_"
                 st.rerun()
-        with col_cc:
+        with col_fwc_host:
             if st.button(
-                f"🥤 Coca-Cola  {cc_tenho}/{cc_total}{cc_check}",
+                f"⭐ FWC — Host Countries  {fwc_host_tenho}/{fwc_host_total}{fwc_host_check}",
                 use_container_width=True,
-                key="card_cc",
+                key="card_fwc_host",
             ):
-                st.session_state.time_sel = "_CC_"
+                st.session_state.time_sel = "_FWC_HOST_"
                 st.rerun()
 
         st.write("")
@@ -698,6 +699,37 @@ with tab_time:
                     st.session_state.time_sel = pais
                     st.rerun()
 
+        st.write("")
+
+        fwc_hist_codes = [f"FWC{i}" for i in range(9, 20)]
+        fwc_hist_df = df[df["Codigo"].isin(fwc_hist_codes)]
+        fwc_hist_tenho = int(fwc_hist_df["Status"].isin(["tenho", "repetida"]).sum())
+        fwc_hist_total = len(fwc_hist_df)
+        fwc_hist_check = " ✅" if fwc_hist_tenho == fwc_hist_total else ""
+
+        cc_df = df[df["Codigo"].str.startswith("CC", na=False)]
+        cc_tenho = int(cc_df["Status"].isin(["tenho", "repetida"]).sum())
+        cc_total = len(cc_df)
+        cc_check = " ✅" if cc_tenho == cc_total else ""
+
+        col_fwc_hist, col_cc = st.columns(2)
+        with col_fwc_hist:
+            if st.button(
+                f"🏆 FWC — History  {fwc_hist_tenho}/{fwc_hist_total}{fwc_hist_check}",
+                use_container_width=True,
+                key="card_fwc_hist",
+            ):
+                st.session_state.time_sel = "_FWC_HIST_"
+                st.rerun()
+        with col_cc:
+            if st.button(
+                f"🥤 Coca-Cola  {cc_tenho}/{cc_total}{cc_check}",
+                use_container_width=True,
+                key="card_cc",
+            ):
+                st.session_state.time_sel = "_CC_"
+                st.rerun()
+
     else:
         # ── Detalhe do time ──────────────────────────────────────────────────
         escolha = st.session_state.time_sel
@@ -706,9 +738,15 @@ with tab_time:
             st.session_state.time_sel = None
             st.rerun()
 
-        if escolha == "_FWC_":
-            time_df = df[df["Codigo"].str.startswith("FWC", na=False) | (df["Codigo"] == "00")].copy()
-            st.subheader("⭐ FIFA World Cup 2026")
+        if escolha == "_INTRO_":
+            time_df = df[df["Codigo"] == "00"].copy()
+            st.subheader("📖 Introdução")
+        elif escolha == "_FWC_HOST_":
+            time_df = df[df["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])].copy()
+            st.subheader("⭐ FWC — Host Countries")
+        elif escolha == "_FWC_HIST_":
+            time_df = df[df["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])].copy()
+            st.subheader("🏆 FWC — History")
         elif escolha == "_CC_":
             time_df = df[df["Codigo"].str.startswith("CC", na=False)].copy()
             st.subheader("🥤 Coca-Cola — Figurinhas Promocionais")
@@ -759,10 +797,12 @@ with tab_time:
                 with st.spinner("Salvando..."):
                     salvar(updates)
                 df_novo = load_df()
-                if escolha == "_FWC_":
-                    time_novo = df_novo[
-                        df_novo["Codigo"].str.startswith("FWC", na=False) | (df_novo["Codigo"] == "00")
-                    ]
+                if escolha == "_INTRO_":
+                    time_novo = df_novo[df_novo["Codigo"] == "00"]
+                elif escolha == "_FWC_HOST_":
+                    time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]
+                elif escolha == "_FWC_HIST_":
+                    time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]
                 elif escolha == "_CC_":
                     time_novo = df_novo[df_novo["Codigo"].str.startswith("CC", na=False)]
                 else:
