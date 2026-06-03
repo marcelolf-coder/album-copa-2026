@@ -415,6 +415,23 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame, incluir_tr
             linhas_rep.append(f"{fig['Codigo']} — {fig['Descricao']}{sufixo}")
     grid_rep = "<br>".join(linhas_rep) if linhas_rep else "Nenhuma figurinha para trocar."
 
+    secao_faltantes = f"""
+<h2>&#10060; Figurinhas Faltantes &mdash; {total_f} figurinhas</h2>
+<div class="grid">
+{grid_falt}
+</div>
+""" if incluir_faltantes else ""
+
+    page_break = '<div class="page-break"></div>' if incluir_faltantes else ""
+
+    secao_trocas = f"""
+{page_break}
+<h1>&#9917; Album Copa do Mundo 2026</h1>
+<p class="meta">Gerado em {hoje}</p>
+<h2>&#128260; Para Trocar &mdash; {total_r} tipos</h2>
+<div class="rep-box">{grid_rep}</div>
+""" if incluir_trocas else ""
+
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -443,22 +460,8 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame, incluir_tr
 
 <h1>&#9917; Album Copa do Mundo 2026</h1>
 <p class="meta">Gerado em {hoje} &bull; {total_f} faltantes &bull; {total_r} tipos para trocar</p>
-
-{"" if not incluir_faltantes else f"""
-<h2>&#10060; Figurinhas Faltantes &mdash; {total_f} figurinhas</h2>
-<div class="grid">
-{grid_falt}
-</div>
-"""}
-
-{"" if not incluir_trocas else f"""
-{"<div class=\\"page-break\\"></div>" if incluir_faltantes else ""}
-<h1>&#9917; Album Copa do Mundo 2026</h1>
-<p class="meta">Gerado em {hoje}</p>
-
-<h2>&#128260; Para Trocar &mdash; {total_r} tipos</h2>
-<div class="rep-box">{grid_rep}</div>
-"""}
+{secao_faltantes}
+{secao_trocas}
 <p class="footer">Abra no navegador e pressione Ctrl+P para imprimir em A4</p>
 </body>
 </html>"""
