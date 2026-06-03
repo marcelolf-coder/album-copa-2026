@@ -388,7 +388,7 @@ def _form_figurinha(fig):
 # Impressão A4
 # ---------------------------------------------------------------------------
 
-def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame, incluir_trocas: bool = True) -> str:
+def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame, incluir_trocas: bool = True, incluir_faltantes: bool = True) -> str:
     hoje = datetime.date.today().strftime("%d/%m/%Y")
     total_f = len(faltantes)
     total_r = len(repetidas)
@@ -444,14 +444,15 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame, incluir_tr
 <h1>&#9917; Album Copa do Mundo 2026</h1>
 <p class="meta">Gerado em {hoje} &bull; {total_f} faltantes &bull; {total_r} tipos para trocar</p>
 
+{"" if not incluir_faltantes else f"""
 <h2>&#10060; Figurinhas Faltantes &mdash; {total_f} figurinhas</h2>
 <div class="grid">
 {grid_falt}
 </div>
+"""}
 
 {"" if not incluir_trocas else f"""
-<div class="page-break"></div>
-
+{"<div class=\\"page-break\\"></div>" if incluir_faltantes else ""}
 <h1>&#9917; Album Copa do Mundo 2026</h1>
 <p class="meta">Gerado em {hoje}</p>
 
@@ -1027,12 +1028,13 @@ with tab_listas:
 
     opcao_impressao = st.radio(
         "O que imprimir:",
-        ["Somente faltantes", "Faltantes + Para trocar"],
+        ["Somente faltantes", "Somente para trocar", "Faltantes + Para trocar"],
         horizontal=True,
     )
-    incluir_trocas = opcao_impressao == "Faltantes + Para trocar"
+    incluir_faltantes = opcao_impressao != "Somente para trocar"
+    incluir_trocas = opcao_impressao != "Somente faltantes"
 
-    html_bytes = _html_impressao(faltantes, repetidas, incluir_trocas).encode("utf-8")
+    html_bytes = _html_impressao(faltantes, repetidas, incluir_trocas, incluir_faltantes).encode("utf-8")
     nome_arquivo = f"album_copa2026_{datetime.date.today().strftime('%Y%m%d')}.html"
     st.download_button(
         label="🖨️ Baixar para impressão (A4)",
