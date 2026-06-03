@@ -810,6 +810,7 @@ with tab_time:
             for col_i, (_, fig) in enumerate(chunk.iterrows()):
                 with cols[col_i]:
                     key = f"{prefix}{fig['Codigo']}"
+                    reps_key = f"reps_{fig['Codigo']}"
                     idx_atual = STATUS_OPTIONS.index(fig["Status"])
                     novo = st.selectbox(
                         fig["Codigo"],
@@ -821,8 +822,35 @@ with tab_time:
                     nome = fig["Descricao"]
                     if nome and nome not in ("nan", fig["Codigo"]):
                         st.caption(nome)
-                    if novo != fig["Status"]:
-                        alteracoes[int(fig["_row"])] = (novo, int(fig["Repetidas"]))
+
+                    reps_atual = int(fig["Repetidas"])
+                    if novo == "repetida":
+                        if reps_key not in st.session_state:
+                            st.session_state[reps_key] = max(1, reps_atual)
+                        qtd = st.session_state[reps_key]
+                        c_menos, c_qtd, c_mais = st.columns([1, 1, 1])
+                        with c_menos:
+                            if st.button("−", key=f"menos_{fig['Codigo']}", use_container_width=True):
+                                st.session_state[reps_key] = max(1, qtd - 1)
+                                st.rerun()
+                        with c_qtd:
+                            st.markdown(
+                                f"<div style='text-align:center;font-size:0.85rem;padding-top:6px'>"
+                                f"{st.session_state[reps_key]}x</div>",
+                                unsafe_allow_html=True,
+                            )
+                        with c_mais:
+                            if st.button("+", key=f"mais_{fig['Codigo']}", use_container_width=True):
+                                st.session_state[reps_key] = qtd + 1
+                                st.rerun()
+                        novas_reps = st.session_state[reps_key]
+                    else:
+                        if reps_key in st.session_state:
+                            del st.session_state[reps_key]
+                        novas_reps = reps_atual
+
+                    if novo != fig["Status"] or (novo == "repetida" and novas_reps != reps_atual):
+                        alteracoes[int(fig["_row"])] = (novo, novas_reps)
 
         if alteracoes:
             label = f"💾 Salvar {len(alteracoes)} alteração(ões)"
