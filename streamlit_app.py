@@ -17,6 +17,7 @@ import datetime
 import json
 import os
 import re
+import urllib.parse
 
 import gspread
 import numpy as np
@@ -382,6 +383,89 @@ def _form_figurinha(fig):
             salvar([(int(fig["_row"]), novo_status, int(novas_reps))])
         st.success(f"**{fig['Codigo']}** → {STATUS_LABEL[novo_status]}")
         st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Exportação WhatsApp
+# ---------------------------------------------------------------------------
+
+# Mapeamento prefixo → código ISO curto (conforme imagem de template)
+_TEAM_SHORT = {
+    "MEX": "MEX", "RSA": "RSA", "KOR": "KOR", "CZE": "CZE", "CAN": "CAN",
+    "BIH": "BIH", "QAT": "QAT", "SUI": "SUI", "BRA": "BRA", "MAR": "MAR",
+    "HAI": "HAI", "SCO": "SCO", "USA": "USA", "PAR": "PAR", "AUS": "AUS",
+    "TUR": "TUR", "GER": "GER", "CUW": "CUW", "CIV": "CIV", "ECU": "ECU",
+    "NED": "NED", "JPN": "JPN", "SWE": "SWE", "TUN": "TUN", "BEL": "BEL",
+    "EGY": "EGY", "IRN": "IRN", "NZL": "NZL", "ESP": "ESP", "CPV": "CPV",
+    "KSA": "KSA", "URU": "URU", "FRA": "FRA", "SEN": "SEN", "IRQ": "IRQ",
+    "NOR": "NOR", "ARG": "ARG", "ALG": "ALG", "AUT": "AUT", "JOR": "JOR",
+    "POR": "POR", "COD": "COD", "UZB": "UZB", "COL": "COL", "ENG": "ENG",
+    "CRO": "CRO", "GHA": "GHA", "PAN": "PAN",
+}
+
+# Bandeiras por prefixo (para a linha do time no WhatsApp)
+_FLAG_BY_PREFIX = {prefix: BANDEIRAS.get(nome, "") for prefix, nome in TEAMS}
+
+
+def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
+                    incluir_faltantes: bool, incluir_trocas: bool) -> str:
+    linhas = ["Figurinhas App - Lista", "Eua Méx Can 26", ""]
+
+    # Ordem dos times conforme o álbum (usando TEAMS)
+    _order = {prefix: i for i, (prefix, _) in enumerate(TEAMS)}
+
+    def _numeros_por_prefix(df_part: pd.DataFrame) -> dict:
+        """Retorna dict prefix → lista de números, na ordem do álbum."""
+        result = {}
+        fwc_nums = []
+        for _, row in df_part.iterrows():
+            codigo = str(row["Codigo"])
+            if codigo.startswith("FWC"):
+                try:
+                    fwc_nums.append(int(codigo[3:]))
+                except ValueError:
+                    pass
+            else:
+                # extrai prefixo e número (ex: BRA8 → BRA, 8)
+                m = re.match(r'^([A-Z]+)(\d+)$', codigo)
+                if m:
+                    pref, num = m.group(1), int(m.group(2))
+                    result.setdefault(pref, []).append(num)
+        # ordena os times pela ordem do álbum
+        ordered = {}
+        if fwc_nums:
+            ordered["FWC"] = sorted(fwc_nums)
+        for prefix, _ in TEAMS:
+            if prefix in result:
+                ordered[prefix] = sorted(result[prefix])
+        return ordered
+
+    if incluir_faltantes and not faltantes.empty:
+        linhas.append("Faltantes")
+        por_prefix = _numeros_por_prefix(faltantes)
+        for pref, nums in por_prefix.items():
+            if pref == "FWC":
+                flag = "🏆"
+                linhas.append(f"FWC {flag}: {', '.join(str(n) for n in nums)}")
+            else:
+                flag = _FLAG_BY_PREFIX.get(pref, "")
+                sep = " " if flag else ""
+                linhas.append(f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}")
+        linhas.append("")
+
+    if incluir_trocas and not repetidas.empty:
+        linhas.append("Repetidas")
+        por_prefix = _numeros_por_prefix(repetidas)
+        for pref, nums in por_prefix.items():
+            if pref == "FWC":
+                flag = "🏆"
+                linhas.append(f"FWC {flag}: {', '.join(str(n) for n in nums)}")
+            else:
+                flag = _FLAG_BY_PREFIX.get(pref, "")
+                sep = " " if flag else ""
+                linhas.append(f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}")
+
+    return "\n".join(linhas)
 
 
 # ---------------------------------------------------------------------------
@@ -1075,6 +1159,15 @@ with tab_listas:
         use_container_width=True,
     )
     st.caption("Abra o arquivo baixado no navegador e pressione Ctrl+P para imprimir.")
+
+    texto_wpp = _texto_whatsapp(faltantes, repetidas, incluir_faltantes, incluir_trocas)
+    wpp_url = "https://wa.me/?text=" + urllib.parse.quote(texto_wpp)
+    st.link_button(
+        label="💬 Exportar WhatsApp",
+        url=wpp_url,
+        use_container_width=True,
+    )
+    st.caption("Abre o WhatsApp com a lista pronta para enviar.")
 
     st.divider()
 
