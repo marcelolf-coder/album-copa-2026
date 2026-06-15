@@ -389,16 +389,14 @@ def _form_figurinha(fig):
 # Exportação WhatsApp
 # ---------------------------------------------------------------------------
 
+_FLAG_BY_PREFIX = {prefix: BANDEIRAS.get(nome, "") for prefix, nome in TEAMS}
+
 
 def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
                     incluir_faltantes: bool, incluir_trocas: bool) -> str:
     linhas = ["Figurinhas App - Lista", "Eua Méx Can 26", ""]
 
-    # Ordem dos times conforme o álbum (usando TEAMS)
-    _order = {prefix: i for i, (prefix, _) in enumerate(TEAMS)}
-
     def _numeros_por_prefix(df_part: pd.DataFrame) -> dict:
-        """Retorna dict prefix → lista de números, na ordem do álbum."""
         result = {}
         fwc_nums = []
         for _, row in df_part.iterrows():
@@ -409,12 +407,10 @@ def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
                 except ValueError:
                     pass
             else:
-                # extrai prefixo e número (ex: BRA8 → BRA, 8)
                 m = re.match(r'^([A-Z]+)(\d+)$', codigo)
                 if m:
                     pref, num = m.group(1), int(m.group(2))
                     result.setdefault(pref, []).append(num)
-        # ordena os times pela ordem do álbum
         ordered = {}
         if fwc_nums:
             ordered["FWC"] = sorted(fwc_nums)
@@ -423,18 +419,21 @@ def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
                 ordered[prefix] = sorted(result[prefix])
         return ordered
 
+    def _linha(pref, nums):
+        flag = "🏆" if pref == "FWC" else _FLAG_BY_PREFIX.get(pref, "")
+        sep = " " if flag else ""
+        return f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}"
+
     if incluir_faltantes and not faltantes.empty:
         linhas.append("Faltantes")
-        por_prefix = _numeros_por_prefix(faltantes)
-        for pref, nums in por_prefix.items():
-            linhas.append(f"{pref}: {', '.join(str(n) for n in nums)}")
+        for pref, nums in _numeros_por_prefix(faltantes).items():
+            linhas.append(_linha(pref, nums))
         linhas.append("")
 
     if incluir_trocas and not repetidas.empty:
         linhas.append("Repetidas")
-        por_prefix = _numeros_por_prefix(repetidas)
-        for pref, nums in por_prefix.items():
-            linhas.append(f"{pref}: {', '.join(str(n) for n in nums)}")
+        for pref, nums in _numeros_por_prefix(repetidas).items():
+            linhas.append(_linha(pref, nums))
 
     return "\n".join(linhas)
 
