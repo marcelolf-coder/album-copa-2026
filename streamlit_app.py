@@ -389,23 +389,6 @@ def _form_figurinha(fig):
 # Exportação WhatsApp
 # ---------------------------------------------------------------------------
 
-# Mapeamento prefixo → código ISO curto (conforme imagem de template)
-_TEAM_SHORT = {
-    "MEX": "MEX", "RSA": "RSA", "KOR": "KOR", "CZE": "CZE", "CAN": "CAN",
-    "BIH": "BIH", "QAT": "QAT", "SUI": "SUI", "BRA": "BRA", "MAR": "MAR",
-    "HAI": "HAI", "SCO": "SCO", "USA": "USA", "PAR": "PAR", "AUS": "AUS",
-    "TUR": "TUR", "GER": "GER", "CUW": "CUW", "CIV": "CIV", "ECU": "ECU",
-    "NED": "NED", "JPN": "JPN", "SWE": "SWE", "TUN": "TUN", "BEL": "BEL",
-    "EGY": "EGY", "IRN": "IRN", "NZL": "NZL", "ESP": "ESP", "CPV": "CPV",
-    "KSA": "KSA", "URU": "URU", "FRA": "FRA", "SEN": "SEN", "IRQ": "IRQ",
-    "NOR": "NOR", "ARG": "ARG", "ALG": "ALG", "AUT": "AUT", "JOR": "JOR",
-    "POR": "POR", "COD": "COD", "UZB": "UZB", "COL": "COL", "ENG": "ENG",
-    "CRO": "CRO", "GHA": "GHA", "PAN": "PAN",
-}
-
-# Bandeiras por prefixo (para a linha do time no WhatsApp)
-_FLAG_BY_PREFIX = {prefix: BANDEIRAS.get(nome, "") for prefix, nome in TEAMS}
-
 
 def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
                     incluir_faltantes: bool, incluir_trocas: bool) -> str:
@@ -444,26 +427,14 @@ def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
         linhas.append("Faltantes")
         por_prefix = _numeros_por_prefix(faltantes)
         for pref, nums in por_prefix.items():
-            if pref == "FWC":
-                flag = "🏆"
-                linhas.append(f"FWC {flag}: {', '.join(str(n) for n in nums)}")
-            else:
-                flag = _FLAG_BY_PREFIX.get(pref, "")
-                sep = " " if flag else ""
-                linhas.append(f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}")
+            linhas.append(f"{pref}: {', '.join(str(n) for n in nums)}")
         linhas.append("")
 
     if incluir_trocas and not repetidas.empty:
         linhas.append("Repetidas")
         por_prefix = _numeros_por_prefix(repetidas)
         for pref, nums in por_prefix.items():
-            if pref == "FWC":
-                flag = "🏆"
-                linhas.append(f"FWC {flag}: {', '.join(str(n) for n in nums)}")
-            else:
-                flag = _FLAG_BY_PREFIX.get(pref, "")
-                sep = " " if flag else ""
-                linhas.append(f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}")
+            linhas.append(f"{pref}: {', '.join(str(n) for n in nums)}")
 
     return "\n".join(linhas)
 
