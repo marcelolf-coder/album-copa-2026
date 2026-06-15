@@ -1131,34 +1131,17 @@ with tab_listas:
 
     texto_wpp = _texto_whatsapp(faltantes, repetidas, incluir_faltantes, incluir_trocas)
     texto_json = json.dumps(texto_wpp)
-    # O iframe do st.components é sandboxado — navigator.share() não roda lá.
-    # Solução: botão no iframe envia postMessage para o pai; listener no pai executa o share.
-    share_key = f"wpp_{hash(texto_wpp) & 0xFFFFFFFF}"
-    streamlit_js_eval(js_expressions=f"""
-(function() {{
-    var key = {json.dumps(share_key)};
-    var txt = {texto_json};
-    function handler(e) {{
-        if (e.data && e.data.type === 'wpp_share' && e.data.key === key) {{
-            window.removeEventListener('message', handler);
-            if (navigator.share) {{
-                navigator.share({{text: txt}});
-            }} else {{
-                window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
-            }}
-        }}
-    }}
-    window.addEventListener('message', handler);
-}})()
-""", key=f"wpp_listener_{share_key}")
+    # window.parent.open() contorna o sandbox do iframe e abre no contexto do frame pai.
+    # api.whatsapp.com/send?text= abre o seletor de contatos no WhatsApp mobile.
     st.components.v1.html(f"""
-<button onclick="window.parent.postMessage({{type:'wpp_share', key:{json.dumps(share_key)}}}, '*')"
+<script>var WPP_TEXT = {texto_json};</script>
+<button onclick="window.parent.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(WPP_TEXT), '_blank')"
   style="width:100%; padding:0.55rem 1rem; font-size:1rem; font-weight:600;
          background:#25D366; color:#FFFFFF; border:none; border-radius:8px; cursor:pointer;">
   💬 Exportar WhatsApp
 </button>
 """, height=52)
-    st.caption("Abre o seletor de contatos do celular para enviar via WhatsApp.")
+    st.caption("Abre o WhatsApp com a lista pronta — escolha o contato para enviar.")
 
     st.divider()
 
