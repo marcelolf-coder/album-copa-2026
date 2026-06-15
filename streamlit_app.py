@@ -17,7 +17,6 @@ import datetime
 import json
 import os
 import re
-import urllib.parse
 
 import gspread
 import numpy as np
@@ -1131,13 +1130,21 @@ with tab_listas:
     st.caption("Abra o arquivo baixado no navegador e pressione Ctrl+P para imprimir.")
 
     texto_wpp = _texto_whatsapp(faltantes, repetidas, incluir_faltantes, incluir_trocas)
-    wpp_url = "https://wa.me/?text=" + urllib.parse.quote(texto_wpp)
-    st.link_button(
-        label="💬 Exportar WhatsApp",
-        url=wpp_url,
-        use_container_width=True,
-    )
-    st.caption("Abre o WhatsApp com a lista pronta para enviar.")
+    texto_json = json.dumps(texto_wpp)
+    st.components.v1.html(f"""
+<button onclick="
+  var txt = {texto_json};
+  if (navigator.share) {{
+    navigator.share({{text: txt}});
+  }} else {{
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  }}
+" style="
+  width:100%; padding:0.55rem 1rem; font-size:1rem; font-weight:600;
+  background:#25D366; color:#FFFFFF; border:none; border-radius:8px; cursor:pointer;
+">💬 Exportar WhatsApp</button>
+""", height=52)
+    st.caption("Abre o seletor de contatos do celular para enviar via WhatsApp.")
 
     st.divider()
 
