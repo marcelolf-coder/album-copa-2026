@@ -17,6 +17,7 @@ import datetime
 import json
 import os
 import re
+import unicodedata
 
 import gspread
 import numpy as np
@@ -704,8 +705,10 @@ with tab_time:
         df["Codigo"].str.startswith("CC", na=False) |
         (df["Codigo"] == "00")
     )
-    _teams_order = {nome: i for i, (_, nome) in enumerate(TEAMS)}
-    paises = sorted(df[~_excluir_especiais]["Pais"].unique(), key=lambda p: _teams_order.get(p, 999))
+    def _sem_acento(s):
+        return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("ascii").upper()
+
+    paises = sorted(df[~_excluir_especiais]["Pais"].unique(), key=_sem_acento)
 
     pais_tenho = {
         p: int(df[df["Pais"] == p]["Status"].isin(["tenho", "repetida"]).sum())
