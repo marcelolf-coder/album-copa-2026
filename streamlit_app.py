@@ -563,11 +563,7 @@ with tab_time:
         # ── Detalhe do time ──────────────────────────────────────────────────
         escolha = st.session_state.time_sel
 
-        _sequencia = (
-            ["_INTRO_", "_FWC_HOST_"]
-            + [nome for _, nome in TEAMS]
-            + ["_FWC_HIST_", "_CC_"]
-        )
+        _sequencia = ["_INTRO_", "_FWC_HOST_"] + [nome for _, nome in TEAMS] + ["_FWC_HIST_", "_CC_"]
         _idx_atual = _sequencia.index(escolha) if escolha in _sequencia else -1
         _anterior = _sequencia[_idx_atual - 1] if _idx_atual > 0 else None
         _proximo = _sequencia[_idx_atual + 1] if _idx_atual >= 0 and _idx_atual + 1 < len(_sequencia) else None
