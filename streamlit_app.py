@@ -13,18 +13,23 @@ Secrets necessários:
   client_email = "..."
   ... (cole o JSON da service account aqui)
 """
-import datetime
 import json
 import os
-import re
 import unicodedata
 
 import gspread
-import numpy as np
 import pandas as pd
 import streamlit as st
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
 from streamlit_js_eval import streamlit_js_eval
+
+from logic import (
+    STATUS_OPTIONS, STATUS_ICON, STATUS_LABEL,
+    BANDEIRAS, PAIS_ALIAS, TEAMS, FWC_CODES, _FLAG_BY_PREFIX,
+    build_map, pais_label,
+    _texto_whatsapp, _html_impressao,
+    _pre_processar, _extrair_codigos,
+)
 
 st.set_page_config(
     page_title="Album Copa 2026",
@@ -229,81 +234,10 @@ streamlit_js_eval(js_expressions="""
 """, key="force_light_theme")
 
 # ---------------------------------------------------------------------------
-# Constantes
+# Constantes de UI
 # ---------------------------------------------------------------------------
 
-STATUS_OPTIONS = ["faltante", "tenho", "repetida"]
-STATUS_ICON = {"tenho": "🟢", "repetida": "🟡", "faltante": "🔴"}
-STATUS_LABEL = {s: f"{STATUS_ICON[s]} {s}" for s in STATUS_OPTIONS}
 COLS_GRID = 3
-
-BANDEIRAS = {
-    "México": "🇲🇽", "África do Sul": "🇿🇦", "Coreia do Sul": "🇰🇷",
-    "Tchéquia": "🇨🇿", "Canadá": "🇨🇦", "Bósnia e Herzegovina": "🇧🇦",
-    "Catar": "🇶🇦", "Suíça": "🇨🇭", "Brasil": "🇧🇷", "Marrocos": "🇲🇦",
-    "Haiti": "🇭🇹", "Escócia": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "EUA": "🇺🇸", "Paraguai": "🇵🇾",
-    "Austrália": "🇦🇺", "Turquia": "🇹🇷", "Alemanha": "🇩🇪", "Curaçao": "🇨🇼",
-    "Costa do Marfim": "🇨🇮", "Equador": "🇪🇨", "Países Baixos": "🇳🇱",
-    "Japão": "🇯🇵", "Suécia": "🇸🇪", "Tunísia": "🇹🇳", "Bélgica": "🇧🇪",
-    "Egito": "🇪🇬", "Irã": "🇮🇷", "Nova Zelândia": "🇳🇿", "Espanha": "🇪🇸",
-    "Cabo Verde": "🇨🇻", "Arábia Saudita": "🇸🇦", "Uruguai": "🇺🇾",
-    "França": "🇫🇷", "Senegal": "🇸🇳", "Iraque": "🇮🇶", "Noruega": "🇳🇴",
-    "Argentina": "🇦🇷", "Argélia": "🇩🇿", "Áustria": "🇦🇹", "Jordânia": "🇯🇴",
-    "Portugal": "🇵🇹", "Congo RD": "🇨🇩", "Uzbequistão": "🇺🇿",
-    "Colômbia": "🇨🇴", "Inglaterra": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Croácia": "🇭🇷",
-    "Gana": "🇬🇭", "Panamá": "🇵🇦",
-}
-
-PAIS_ALIAS = {
-    "HOLANDA": "Países Baixos", "HOLLAND": "Países Baixos",
-    "NETHERLANDS": "Países Baixos", "PAÍSES BAIXOS": "Países Baixos",
-    "PAISES BAIXOS": "Países Baixos",
-    "COREIA": "Coreia do Sul", "KOREA": "Coreia do Sul",
-    "ALEMANHA": "Alemanha", "GERMANY": "Alemanha",
-    "COSTA DO MARFIM": "Costa do Marfim", "IVORY COAST": "Costa do Marfim",
-    "NOVA ZELÂNDIA": "Nova Zelândia", "NEW ZEALAND": "Nova Zelândia",
-    "NOVA ZELANDIA": "Nova Zelândia",
-    "ARÁBIA SAUDITA": "Arábia Saudita", "SAUDI ARABIA": "Arábia Saudita",
-    "ARABIA SAUDITA": "Arábia Saudita",
-    "BÓSNIA": "Bósnia e Herzegovina", "BOSNIA": "Bósnia e Herzegovina",
-    "BOSNIA E HERZEGOVINA": "Bósnia e Herzegovina",
-    "AFRICA DO SUL": "África do Sul", "SOUTH AFRICA": "África do Sul",
-}
-
-TEAMS = [
-    ("MEX", "México"), ("RSA", "África do Sul"), ("KOR", "Coreia do Sul"),
-    ("CZE", "Tchéquia"), ("CAN", "Canadá"), ("BIH", "Bósnia e Herzegovina"),
-    ("QAT", "Catar"), ("SUI", "Suíça"), ("BRA", "Brasil"), ("MAR", "Marrocos"),
-    ("HAI", "Haiti"), ("SCO", "Escócia"), ("USA", "EUA"), ("PAR", "Paraguai"),
-    ("AUS", "Austrália"), ("TUR", "Turquia"), ("GER", "Alemanha"), ("CUW", "Curaçao"),
-    ("CIV", "Costa do Marfim"), ("ECU", "Equador"), ("NED", "Países Baixos"),
-    ("JPN", "Japão"), ("SWE", "Suécia"), ("TUN", "Tunísia"), ("BEL", "Bélgica"),
-    ("EGY", "Egito"), ("IRN", "Irã"), ("NZL", "Nova Zelândia"), ("ESP", "Espanha"),
-    ("CPV", "Cabo Verde"), ("KSA", "Arábia Saudita"), ("URU", "Uruguai"),
-    ("FRA", "França"), ("SEN", "Senegal"), ("IRQ", "Iraque"), ("NOR", "Noruega"),
-    ("ARG", "Argentina"), ("ALG", "Argélia"), ("AUT", "Áustria"), ("JOR", "Jordânia"),
-    ("POR", "Portugal"), ("COD", "Congo RD"), ("UZB", "Uzbequistão"),
-    ("COL", "Colômbia"), ("ENG", "Inglaterra"), ("CRO", "Croácia"),
-    ("GHA", "Gana"), ("PAN", "Panamá"),
-]
-
-FWC_CODES = [f"FWC{i}" for i in range(1, 20)]
-
-
-def build_map() -> dict:
-    m = {1: "00"}
-    for i, code in enumerate(FWC_CODES):
-        m[i + 2] = code
-    for t_idx, (prefix, _) in enumerate(TEAMS):
-        start = 21 + t_idx * 20
-        for j in range(1, 21):
-            m[start + j - 1] = f"{prefix}{j}"
-    return m
-
-
-def pais_label(pais: str) -> str:
-    flag = BANDEIRAS.get(pais, "")
-    return f"{flag} {pais}" if flag else pais
 
 
 # ---------------------------------------------------------------------------
@@ -386,184 +320,13 @@ def _form_figurinha(fig):
 
 
 # ---------------------------------------------------------------------------
-# Exportação WhatsApp
-# ---------------------------------------------------------------------------
-
-_FLAG_BY_PREFIX = {prefix: BANDEIRAS.get(nome, "") for prefix, nome in TEAMS}
-
-
-def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
-                    incluir_faltantes: bool, incluir_trocas: bool) -> str:
-    linhas = ["Figurinhas App - Lista", "Eua Méx Can 26", ""]
-
-    def _numeros_por_prefix(df_part: pd.DataFrame) -> dict:
-        result = {}
-        fwc_nums = []
-        for _, row in df_part.iterrows():
-            codigo = str(row["Codigo"])
-            if codigo.startswith("FWC"):
-                try:
-                    fwc_nums.append(int(codigo[3:]))
-                except ValueError:
-                    pass
-            else:
-                m = re.match(r'^([A-Z]+)(\d+)$', codigo)
-                if m:
-                    pref, num = m.group(1), int(m.group(2))
-                    result.setdefault(pref, []).append(num)
-        ordered = {}
-        if fwc_nums:
-            ordered["FWC"] = sorted(fwc_nums)
-        for prefix, _ in TEAMS:
-            if prefix in result:
-                ordered[prefix] = sorted(result[prefix])
-        return ordered
-
-    def _linha(pref, nums):
-        flag = "🏆" if pref == "FWC" else _FLAG_BY_PREFIX.get(pref, "")
-        sep = " " if flag else ""
-        return f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}"
-
-    if incluir_faltantes and not faltantes.empty:
-        linhas.append("Faltantes")
-        for pref, nums in _numeros_por_prefix(faltantes).items():
-            linhas.append(_linha(pref, nums))
-        linhas.append("")
-
-    if incluir_trocas and not repetidas.empty:
-        linhas.append("Repetidas")
-        for pref, nums in _numeros_por_prefix(repetidas).items():
-            linhas.append(_linha(pref, nums))
-
-    return "\n".join(linhas)
-
-
-# ---------------------------------------------------------------------------
-# Impressão A4
-# ---------------------------------------------------------------------------
-
-def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame, incluir_trocas: bool = True, incluir_faltantes: bool = True) -> str:
-    hoje = datetime.date.today().strftime("%d/%m/%Y")
-    total_f = len(faltantes)
-    total_r = len(repetidas)
-
-    blocos_falt = []
-    for pais, grupo in faltantes.groupby("Pais", sort=True):
-        linhas = "\n".join(
-            f"{r['Codigo']} — {r['Descricao']}"
-            for _, r in grupo.iterrows()
-        )
-        blocos_falt.append(
-            f'<div class="pais">'
-            f'<div class="pais-nome">{pais} ({len(grupo)})</div>'
-            f'<div class="codigos">{linhas}</div>'
-            f'</div>'
-        )
-    grid_falt = "\n".join(blocos_falt) if blocos_falt else "<p>Nenhuma figurinha faltando!</p>"
-
-    linhas_rep = []
-    for pais, grupo in repetidas.groupby("Pais", sort=True):
-        for _, fig in grupo.iterrows():
-            extras = int(fig["Repetidas"])
-            sufixo = f" +{extras}x" if extras > 0 else ""
-            linhas_rep.append(f"{fig['Codigo']} — {fig['Descricao']}{sufixo}")
-    grid_rep = "<br>".join(linhas_rep) if linhas_rep else "Nenhuma figurinha para trocar."
-
-    secao_faltantes = f"""
-<h2>&#10060; Figurinhas Faltantes &mdash; {total_f} figurinhas</h2>
-<div class="grid">
-{grid_falt}
-</div>
-""" if incluir_faltantes else ""
-
-    page_break = '<div class="page-break"></div>' if incluir_faltantes else ""
-
-    secao_trocas = f"""
-{page_break}
-<h1>&#9917; Album Copa do Mundo 2026</h1>
-<p class="meta">Gerado em {hoje}</p>
-<h2>&#128260; Para Trocar &mdash; {total_r} tipos</h2>
-<div class="rep-box">{grid_rep}</div>
-""" if incluir_trocas else ""
-
-    return f"""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<title>Album Copa 2026 - Impressao</title>
-<style>
-  @page {{ size: A4 portrait; margin: 12mm; }}
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: Arial, sans-serif; font-size: 8.5pt; color: #111; }}
-  h1 {{ font-size: 13pt; text-align: center; margin-bottom: 2mm; }}
-  .meta {{ text-align: center; font-size: 7.5pt; color: #555; margin-bottom: 5mm; }}
-  h2 {{ font-size: 10pt; background: #eee; padding: 1.5mm 2mm; margin: 4mm 0 3mm;
-        border-left: 3px solid #333; }}
-  .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }}
-  .pais {{ break-inside: avoid; border: 0.3mm solid #ccc; border-radius: 1.5mm;
-           padding: 1.5mm 2mm; }}
-  .pais-nome {{ font-weight: bold; font-size: 7.5pt; margin-bottom: 0.8mm; }}
-  .codigos {{ font-size: 7pt; color: #333; line-height: 1.5; white-space: pre-line; }}
-  .page-break {{ page-break-after: always; height: 0; }}
-  .rep-box {{ border: 0.3mm solid #ccc; border-radius: 1.5mm; padding: 3mm 4mm;
-              font-size: 8pt; line-height: 1.8; }}
-  .footer {{ margin-top: 6mm; text-align: center; font-size: 7pt; color: #888; }}
-</style>
-</head>
-<body>
-
-<h1>&#9917; Album Copa do Mundo 2026</h1>
-<p class="meta">Gerado em {hoje} &bull; {total_f} faltantes &bull; {total_r} tipos para trocar</p>
-{secao_faltantes}
-{secao_trocas}
-<p class="footer">Abra no navegador e pressione Ctrl+P para imprimir em A4</p>
-</body>
-</html>"""
-
-
-# ---------------------------------------------------------------------------
-# OCR
+# OCR — engine com cache de sessão
 # ---------------------------------------------------------------------------
 
 @st.cache_resource
 def get_ocr():
     from rapidocr_onnxruntime import RapidOCR
     return RapidOCR()
-
-
-_CODIGO_RE = re.compile(
-    r'\b(FWC|CC|ALG|ARG|AUS|AUT|BEL|BIH|BRA|CAN|CIV|COD|COL|CPV|CRO|CUW|CZE|'
-    r'ECU|EGY|ENG|ESP|FRA|GER|GHA|HAI|IRN|IRQ|JOR|JPN|KOR|KSA|MAR|MEX|NED|'
-    r'NOR|NZL|PAN|PAR|POR|QAT|RSA|SCO|SEN|SUI|SWE|TUN|TUR|URU|USA|UZB)\s*(\d{1,2})\b',
-    re.IGNORECASE,
-)
-
-
-def _pre_processar(img: Image.Image) -> np.ndarray:
-    img = img.convert("L")
-    img = img.filter(ImageFilter.SHARPEN)
-    img = ImageEnhance.Contrast(img).enhance(2.0)
-    img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
-    return np.array(img.convert("RGB"))
-
-
-def _extrair_codigos(foto: Image.Image, codigos_validos: set) -> list:
-    arr = _pre_processar(foto)
-    ocr = get_ocr()
-    resultado, _ = ocr(arr)
-    if not resultado:
-        return []
-
-    encontrados = []
-    for _, texto, confianca in resultado:
-        if confianca < 0.5:
-            continue
-        texto_limpo = texto.strip().upper().replace(" ", "")
-        for m in _CODIGO_RE.finditer(texto_limpo):
-            codigo = m.group(1).upper() + m.group(2)
-            if codigo in codigos_validos:
-                encontrados.append(codigo)
-    return list(dict.fromkeys(encontrados))
 
 
 # ---------------------------------------------------------------------------
@@ -911,29 +674,26 @@ with tab_time:
                     if novo != fig["Status"] or (novo == "repetida" and novas_reps != reps_atual):
                         alteracoes[int(fig["_row"])] = (novo, novas_reps)
 
-        if alteracoes:
-            label = f"💾 Salvar {len(alteracoes)} alteração(ões)"
-            if st.button(label, type="primary", use_container_width=True, key="salvar_time"):
-                updates = [(row, st_val, reps) for row, (st_val, reps) in alteracoes.items()]
-                with st.spinner("Salvando..."):
-                    salvar(updates)
-                df_novo = load_df()
-                if escolha == "_INTRO_":
-                    time_novo = df_novo[df_novo["Codigo"] == "00"]
-                elif escolha == "_FWC_HOST_":
-                    time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]
-                elif escolha == "_FWC_HIST_":
-                    time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]
-                elif escolha == "_CC_":
-                    time_novo = df_novo[df_novo["Codigo"].str.startswith("CC", na=False)]
-                else:
-                    time_novo = df_novo[df_novo["Pais"] == escolha]
-                if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
-                    st.balloons()
-                st.success("Salvo!")
-                st.rerun()
-        else:
-            st.info("Altere o ícone de alguma figurinha para habilitar o salvar.")
+        label = f"💾 Salvar {len(alteracoes)} alteração(ões)" if alteracoes else "💾 Salvar"
+        if st.button(label, type="primary", use_container_width=True, key="salvar_time", disabled=not alteracoes):
+            updates = [(row, st_val, reps) for row, (st_val, reps) in alteracoes.items()]
+            with st.spinner("Salvando..."):
+                salvar(updates)
+            df_novo = load_df()
+            if escolha == "_INTRO_":
+                time_novo = df_novo[df_novo["Codigo"] == "00"]
+            elif escolha == "_FWC_HOST_":
+                time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]
+            elif escolha == "_FWC_HIST_":
+                time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]
+            elif escolha == "_CC_":
+                time_novo = df_novo[df_novo["Codigo"].str.startswith("CC", na=False)]
+            else:
+                time_novo = df_novo[df_novo["Pais"] == escolha]
+            if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
+                st.balloons()
+            st.success("Salvo!")
+            st.rerun()
 
 
 # ── Busca ─────────────────────────────────────────────────────────────────────
@@ -997,7 +757,7 @@ with tab_scanner:
     if foto:
         with st.spinner("Lendo código..."):
             img = Image.open(foto)
-            encontrados = _extrair_codigos(img, codigos_validos)
+            encontrados = _extrair_codigos(img, codigos_validos, get_ocr())
 
         if not encontrados:
             st.error("Nenhum código reconhecido. Tente com mais luz ou mais perto do código.")
@@ -1123,12 +883,14 @@ with tab_listas:
 
     html_bytes = _html_impressao(faltantes, repetidas, incluir_trocas, incluir_faltantes).encode("utf-8")
     nome_arquivo = f"album_copa2026_{datetime.date.today().strftime('%Y%m%d')}.html"
+    _opcao_key = opcao_impressao.replace(" ", "_").lower()
     st.download_button(
         label="🖨️ Baixar para impressão (A4)",
         data=html_bytes,
         file_name=nome_arquivo,
         mime="text/html",
         use_container_width=True,
+        key=f"dl_{_opcao_key}",
     )
     st.caption("Abra o arquivo baixado no navegador e pressione Ctrl+P para imprimir.")
 
@@ -1136,6 +898,7 @@ with tab_listas:
     texto_json = json.dumps(texto_wpp)
     # window.parent.open() contorna o sandbox do iframe e abre no contexto do frame pai.
     # api.whatsapp.com/send?text= abre o seletor de contatos no WhatsApp mobile.
+    # key no html garante que o componente é recriado ao mudar a seleção do radio.
     st.components.v1.html(f"""
 <script>var WPP_TEXT = {texto_json};</script>
 <button onclick="window.parent.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(WPP_TEXT), '_blank')"
@@ -1143,6 +906,7 @@ with tab_listas:
          background:#25D366; color:#FFFFFF; border:none; border-radius:8px; cursor:pointer;">
   💬 Exportar WhatsApp
 </button>
+<!-- key:{_opcao_key} -->
 """, height=52)
     st.caption("Abre o WhatsApp com a lista pronta — escolha o contato para enviar.")
 
