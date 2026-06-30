@@ -72,10 +72,16 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 5. **Pacote** — entrada de figurinhas por número sequencial do álbum
 6. **Listas** — botão imprimir HTML A4 + botão Exportar WhatsApp + subabas faltantes/repetidas/trocas
 
+## Aba Por Time — detalhes
+- Grid inicial mostra todas as seleções em **ordem alfabética sem considerar acentos** (ex: África do Sul, Alemanha, Arábia Saudita...)
+- Seções especiais (Introdução, FWC Host Countries, FWC History, Coca-Cola) ficam fora do grid alfabético — Introdução e FWC Host no topo, FWC History e Coca-Cola no rodapé
+- Ao entrar em uma seleção, as setas ← → navegam na **ordem do álbum** (TEAMS order), não na ordem alfabética do grid
+
 ## Aba Listas — detalhes
 - Radio de seleção: "Somente faltantes" / "Somente para trocar" / "Faltantes + Para trocar"
 - **Baixar para impressão (A4)**: gera HTML para Ctrl+P
 - **Exportar WhatsApp**: botão verde que abre o WhatsApp com a lista pronta para enviar
+- O `download_button` e o componente HTML do WhatsApp recebem `key` derivado da opção do radio — garante que o widget é recriado ao mudar a seleção, evitando o bug de precisar clicar duas vezes
 
 ### Formato da mensagem WhatsApp
 ```
@@ -104,6 +110,19 @@ Times ordenados conforme a ordem do álbum. FWC usa 🏆, times usam bandeira do
 ## Deploy
 - Streamlit Cloud conectado ao repositório GitHub: `marcelolf-coder/album-copa-2026`
 - Branch `main` → deploy automático a cada push
+
+## Testes unitários
+
+Os testes cobrem toda a lógica de negócio em `logic.py` e rodam sem Google Sheets ou Streamlit:
+
+```bash
+pytest tests/test_logic.py -v
+```
+
+**Regras de desenvolvimento:**
+- Toda alteração de código deve ser acompanhada de testes unitários quando a lógica alterada for testável (funções puras em `logic.py`)
+- Antes de qualquer push para produção, rodar os testes e garantir que todos passam
+- Novas funções puras devem ser adicionadas em `logic.py`, não em `streamlit_app.py`
 
 ## Regras importantes
 - Nunca sobrescrever `album.csv` se já existir com dados reais
