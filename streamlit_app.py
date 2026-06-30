@@ -13,6 +13,7 @@ Secrets necessários:
   client_email = "..."
   ... (cole o JSON da service account aqui)
 """
+import datetime
 import json
 import os
 import unicodedata
