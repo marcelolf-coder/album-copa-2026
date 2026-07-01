@@ -944,24 +944,26 @@ with tab_listas:
             st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
 
     with sub_troca:
-        st.caption("Cole os números das figurinhas que **faltam ao seu amigo** para ver o que você pode oferecer.")
+        st.caption("Cole as figurinhas que **faltam ao seu amigo** — aceita códigos (BRA3, BRA 3) ou números sequenciais.")
 
         lista_amigo = st.text_area(
             "Faltantes do amigo:",
-            placeholder="1 5 12 27 45 80 102...",
+            placeholder="BRA3 BRA5 ARG 2\n1 5 12 27 45",
             height=100,
             label_visibility="collapsed",
             key="troca_entrada",
         )
 
         if st.button("🔍 Ver trocas possíveis", use_container_width=True, key="troca_btn"):
-            numeros_raw = re.split(r"[,\s\n]+", lista_amigo.strip())
-            numeros_amigo = {int(n) for n in numeros_raw if n.strip().isdigit()}
+            num_map = build_map()
+            codigos_validos = set(num_map.values())
+            numeros_amigo, invalidos = _parsear_entrada_pacote(lista_amigo, num_map, codigos_validos)
 
             if not numeros_amigo:
-                st.error("Nenhum número válido encontrado.")
+                st.error("Nenhuma figurinha reconhecida.")
             else:
-                num_map = build_map()
+                if invalidos:
+                    st.warning(f"⚠️ Não reconhecidos (ignorados): {', '.join(invalidos)}")
                 codigos_faltam_amigo = {num_map[n] for n in numeros_amigo if n in num_map}
 
                 posso_oferecer = repetidas[repetidas["Codigo"].isin(codigos_faltam_amigo)]
@@ -970,7 +972,7 @@ with tab_listas:
                     df["Codigo"].isin(nao_tenho_rep) & (df["Status"] == "tenho")
                 ]
 
-                st.markdown(f"**{len(numeros_amigo)}** figurinhas na lista do amigo analisadas.")
+                st.markdown(f"**{len(codigos_faltam_amigo)}** figurinhas na lista do amigo analisadas.")
                 st.divider()
 
                 if posso_oferecer.empty:
