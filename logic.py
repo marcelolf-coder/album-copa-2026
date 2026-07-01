@@ -1,6 +1,7 @@
 """
 Lógica de negócio pura — sem dependências de Streamlit ou I/O externo.
 Importado por streamlit_app.py e pelos testes unitários.
+Versão: 2
 """
 import datetime
 import re
