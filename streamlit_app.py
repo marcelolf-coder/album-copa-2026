@@ -514,19 +514,21 @@ with tab_time:
 
         st.write("")
 
-        cols_g = st.columns(3)
-        for i, pais in enumerate(paises):
-            tenho_p = pais_tenho[pais]
-            check = " ✅" if tenho_p == 20 else ""
-            flag = BANDEIRAS.get(pais, "")
-            with cols_g[i % 3]:
-                if st.button(
-                    f"{flag} {pais}  {tenho_p}/20{check}",
-                    key=f"card_{pais}",
-                    use_container_width=True,
-                ):
-                    st.session_state.time_sel = pais
-                    st.rerun()
+        for i in range(0, len(paises), 3):
+            chunk = paises[i:i + 3]
+            cols_g = st.columns(3)
+            for col, pais in zip(cols_g, chunk):
+                tenho_p = pais_tenho[pais]
+                check = " ✅" if tenho_p == 20 else ""
+                flag = BANDEIRAS.get(pais, "")
+                with col:
+                    if st.button(
+                        f"{flag} {pais}  {tenho_p}/20{check}",
+                        key=f"card_{pais}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.time_sel = pais
+                        st.rerun()
 
         st.write("")
 
