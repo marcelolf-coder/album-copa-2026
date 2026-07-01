@@ -5,9 +5,7 @@ Importado por streamlit_app.py e pelos testes unitários.
 import datetime
 import re
 
-import numpy as np
 import pandas as pd
-from PIL import Image, ImageEnhance, ImageFilter
 
 # ---------------------------------------------------------------------------
 # Constantes
@@ -241,15 +239,17 @@ def _html_impressao(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
 # OCR — pré-processamento e extração de códigos
 # ---------------------------------------------------------------------------
 
-def _pre_processar(img: Image.Image) -> np.ndarray:
+def _pre_processar(img):
+    import numpy as np
+    from PIL import ImageEnhance, ImageFilter
     img = img.convert("L")
     img = img.filter(ImageFilter.SHARPEN)
     img = ImageEnhance.Contrast(img).enhance(2.0)
-    img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
+    img = img.resize((img.width * 2, img.height * 2))
     return np.array(img.convert("RGB"))
 
 
-def _extrair_codigos(foto: Image.Image, codigos_validos: set, ocr) -> list:
+def _extrair_codigos(foto, codigos_validos: set, ocr) -> list:
     """Extrai códigos de figurinha da imagem usando o engine OCR fornecido."""
     arr = _pre_processar(foto)
     resultado, _ = ocr(arr)
