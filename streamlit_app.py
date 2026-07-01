@@ -16,6 +16,7 @@ Secrets necessários:
 import datetime
 import json
 import os
+import re
 import unicodedata
 
 import gspread
