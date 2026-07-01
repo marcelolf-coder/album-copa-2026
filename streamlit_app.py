@@ -985,13 +985,3 @@ with tab_listas:
                     ]
                     st.code("\n".join(linhas), language=None)
 
-                if not posso_emprestar.empty:
-                    st.info(
-                        f"ℹ️ Você **tem** (sem repetida) mais **{len(posso_emprestar)}** que o amigo precisa "
-                        f"— estas você só pode oferecer se quiser abrir mão da sua cópia:"
-                    )
-                    linhas2 = [
-                        f"{r['Codigo']} — {r['Descricao']} ({pais_label(r['Pais'])})"
-                        for _, r in posso_emprestar.iterrows()
-                    ]
-                    st.code("\n".join(linhas2), language=None)
