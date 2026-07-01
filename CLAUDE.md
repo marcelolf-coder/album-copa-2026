@@ -135,6 +135,19 @@ Times ordenados conforme a ordem do álbum. FWC usa 🏆, times usam bandeira do
 - Streamlit Cloud conectado ao repositório GitHub: `marcelolf-coder/album-copa-2026`
 - Branch `main` → deploy automático a cada push
 
+### Troubleshooting de deploy — ImportError após push
+
+**Sintoma:** `ImportError: cannot import name 'X' from 'logic'` mesmo com o código correto no GitHub.
+
+**Causa:** o Streamlit Cloud faz hot-reload do `streamlit_app.py` mas mantém o processo Python em memória com o `logic.py` antigo. Funções novas adicionadas ao `logic.py` não ficam visíveis até o processo reiniciar completamente.
+
+**Solução:** Reboot manual no painel do Streamlit Cloud:
+1. Acesse `share.streamlit.io`
+2. Localize o app `album-copa-2026`
+3. Clique em `···` → **Reboot**
+
+**Por que os testes não pegam isso:** os testes unitários verificam lógica de código, não estado de infraestrutura. O problema não estava no código — estava no processo em execução no servidor. São categorias diferentes de validação.
+
 ## Testes unitários
 
 Os testes cobrem toda a lógica de negócio em `logic.py` e rodam sem Google Sheets ou Streamlit:
