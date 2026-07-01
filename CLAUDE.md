@@ -77,6 +77,18 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 - Seções especiais (Introdução, FWC Host Countries, FWC History, Coca-Cola) ficam fora do grid alfabético — Introdução e FWC Host no topo, FWC History e Coca-Cola no rodapé
 - Ao entrar em uma seleção, as setas ← → navegam na **ordem do álbum** (TEAMS order), não na ordem alfabética do grid
 
+### Grid mobile — lição aprendida
+Um único `st.columns(3)` para todos os N itens faz o Streamlit empilhar as colunas inteiras no mobile: todos os itens da coluna 0 primeiro, depois coluna 1, depois coluna 2 — quebrando a ordem visual. A solução correta é criar um novo `st.columns(3)` **por linha de 3 itens**:
+```python
+for i in range(0, len(paises), 3):
+    chunk = paises[i:i + 3]
+    cols = st.columns(3)
+    for col, pais in zip(cols, chunk):
+        with col:
+            ...
+```
+Essa regra vale para qualquer grade de itens no app.
+
 ## Aba Listas — detalhes
 - Radio de seleção: "Somente faltantes" / "Somente para trocar" / "Faltantes + Para trocar"
 - **Baixar para impressão (A4)**: gera HTML para Ctrl+P
