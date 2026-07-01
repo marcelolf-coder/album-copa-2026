@@ -31,7 +31,7 @@ from logic import (
     build_map, pais_label,
     _texto_whatsapp, _html_impressao,
     _pre_processar, _extrair_codigos,
-    _classificar_pacote, _formatar_lista_repetidas,
+    _classificar_pacote, _parsear_entrada_pacote,
 )
 
 st.set_page_config(
@@ -799,57 +799,60 @@ with tab_scanner:
 # ── Pacote ────────────────────────────────────────────────────────────────────
 with tab_pacote:
     st.subheader("📦 Adicionar figurinhas")
-    st.caption("Digite os números do pacote separados por espaço, vírgula ou linha.")
+    st.caption("Digite os códigos (BRA3, BRA 3) ou números sequenciais (182), separados por espaço, vírgula ou linha.")
 
     entrada = st.text_area(
-        "Números:",
-        placeholder="27 80 85 89 107\n120 125 132 136 160",
+        "Figurinhas:",
+        placeholder="BRA3 BRA5 ARG 2\n182 185 210",
         height=120,
         label_visibility="collapsed",
         key="pacote_entrada",
     )
 
     if st.button("🔍 Verificar figurinhas", type="primary", use_container_width=True, key="pacote_btn"):
-        numeros_raw = re.split(r"[,\s\n]+", entrada.strip())
-        numeros = [int(n) for n in numeros_raw if n.strip().isdigit()]
-
-        if not numeros:
-            st.error("Nenhum número válido encontrado.")
+        if not entrada.strip():
+            st.error("Nenhuma figurinha digitada.")
         else:
             num_map = build_map()
             df_atual = load_df()
             by_code = df_atual.set_index("Codigo")
+            codigos_validos = set(by_code.index)
             status_map = {
                 code: (row["Status"], int(row["Repetidas"]), int(row["_row"]))
                 for code, row in by_code.iterrows()
             }
 
-            novas, ja_coletadas, repetidas_lst, desconhecidos, updates = _classificar_pacote(
-                numeros, num_map, status_map
-            )
-            st.session_state["pacote_preview"] = (novas, ja_coletadas, repetidas_lst, desconhecidos, updates)
-            st.rerun()
+            numeros, invalidos = _parsear_entrada_pacote(entrada, num_map, codigos_validos)
+
+            if not numeros and not invalidos:
+                st.error("Nenhuma figurinha reconhecida.")
+            else:
+                novas, ja_coletadas, repetidas_lst, desconhecidos, updates = _classificar_pacote(
+                    numeros, num_map, status_map
+                )
+                st.session_state["pacote_preview"] = (novas, ja_coletadas, repetidas_lst, invalidos, updates)
+                st.rerun()
 
     if "pacote_preview" in st.session_state:
-        novas, ja_coletadas, repetidas_lst, desconhecidos, updates = st.session_state["pacote_preview"]
+        novas, ja_coletadas, repetidas_lst, invalidos, updates = st.session_state["pacote_preview"]
 
         st.divider()
         st.write("**Preview — o que será salvo:**")
 
         if novas:
             st.success(f"🟢 {len(novas)} nova(s) — passam para **tenho**")
-            st.code("\n".join(f"{n:>4}  {code}" for n, code in novas), language=None)
+            st.code("\n".join(code for _, code in novas), language=None)
 
         if ja_coletadas:
             st.warning(f"🟡 {len(ja_coletadas)} já coletada(s) — passam para **repetida**")
-            st.code("\n".join(f"{n:>4}  {code}" for n, code in ja_coletadas), language=None)
+            st.code("\n".join(code for _, code in ja_coletadas), language=None)
 
         if repetidas_lst:
             st.warning(f"🟡 {len(repetidas_lst)} repetida(s) — contador incrementado")
-            st.code("\n".join(f"{n:>4}  {code}  (extras: {qtd})" for n, code, qtd in repetidas_lst), language=None)
+            st.code("\n".join(f"{code}  (extras: {qtd})" for _, code, qtd in repetidas_lst), language=None)
 
-        if desconhecidos:
-            st.error(f"⚠️ Números não encontrados: {desconhecidos}")
+        if invalidos:
+            st.error(f"⚠️ Não reconhecidos: {', '.join(invalidos)}")
 
         if updates:
             if st.button("✅ Confirmar e salvar", type="primary", use_container_width=True, key="pacote_confirmar"):
@@ -932,9 +935,13 @@ with tab_listas:
         if repetidas.empty:
             st.info("Nenhuma repetida ainda.")
         else:
-            _num_map_inv = {v: k for k, v in build_map().items()}
-            st.code(_formatar_lista_repetidas(repetidas, _num_map_inv), language=None)
-            st.caption("# = número sequencial do álbum. Copie e compartilhe com quem quiser trocar!")
+            linhas = []
+            for _, fig in repetidas.iterrows():
+                extras = int(fig["Repetidas"])
+                sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
+                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({pais_label(fig['Pais'])}){sufixo}")
+            st.code("\n".join(linhas), language=None)
+            st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
 
     with sub_troca:
         st.caption("Cole os números das figurinhas que **faltam ao seu amigo** para ver o que você pode oferecer.")

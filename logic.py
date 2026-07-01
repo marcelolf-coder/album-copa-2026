@@ -273,6 +273,54 @@ def _extrair_codigos(foto, codigos_validos: set, ocr) -> list:
 # Lógica do Pacote
 # ---------------------------------------------------------------------------
 
+def _parsear_entrada_pacote(texto: str, num_map: dict, codigos_validos: set) -> tuple:
+    """
+    Interpreta a entrada do pacote aceitando números sequenciais (182) ou códigos (BRA3, BRA 3).
+
+    Retorna: (numeros_seq: list[int], invalidos: list[str])
+      - numeros_seq: posições sequenciais resolvidas (para passar a _classificar_pacote)
+      - invalidos: tokens que não foram reconhecidos
+    """
+    num_map_inv = {v: k for k, v in num_map.items()}
+    tokens = re.split(r"[\s,\n]+", texto.strip())
+
+    numeros_seq = []
+    invalidos = []
+
+    i = 0
+    while i < len(tokens):
+        token = tokens[i].strip().upper()
+        if not token:
+            i += 1
+            continue
+
+        # Número sequencial puro: "182"
+        if token.isdigit():
+            numeros_seq.append(int(token))
+            i += 1
+            continue
+
+        # Código completo sem espaço: "BRA3"
+        if token in codigos_validos:
+            numeros_seq.append(num_map_inv[token])
+            i += 1
+            continue
+
+        # Código com espaço: "BRA" + "3" → "BRA3"
+        if i + 1 < len(tokens):
+            proximo = tokens[i + 1].strip()
+            junto = token + proximo
+            if junto in codigos_validos:
+                numeros_seq.append(num_map_inv[junto])
+                i += 2
+                continue
+
+        invalidos.append(tokens[i])
+        i += 1
+
+    return numeros_seq, invalidos
+
+
 def _classificar_pacote(numeros: list, num_map: dict, status_map: dict) -> tuple:
     """
     Classifica números de figurinhas do pacote pelo status atual.

@@ -13,6 +13,7 @@ from logic import (
     _extrair_codigos,
     _classificar_pacote,
     _formatar_lista_repetidas,
+    _parsear_entrada_pacote,
 )
 
 
@@ -243,6 +244,62 @@ class TestExtrairCodigos:
         ocr = _mock_ocr([(None, "bra5", 0.9)])
         resultado = _extrair_codigos(_imagem_branca(), CODIGOS_VALIDOS, ocr)
         assert resultado == ["BRA5"]
+
+
+# ---------------------------------------------------------------------------
+# _parsear_entrada_pacote
+# ---------------------------------------------------------------------------
+
+class TestParsearEntradaPacote:
+    def setup_method(self):
+        self.num_map = build_map()
+        self.codigos_validos = set(self.num_map.values())
+
+    def _parse(self, texto):
+        return _parsear_entrada_pacote(texto, self.num_map, self.codigos_validos)
+
+    def test_numero_sequencial(self):
+        nums, inv = self._parse("182")
+        assert 182 in nums
+        assert inv == []
+
+    def test_codigo_sem_espaco(self):
+        nums, inv = self._parse("BRA3")
+        seq = next(k for k, v in self.num_map.items() if v == "BRA3")
+        assert seq in nums
+        assert inv == []
+
+    def test_codigo_com_espaco(self):
+        # "BRA 3" deve resolver igual a "BRA3"
+        nums_sem, _ = self._parse("BRA3")
+        nums_com, inv = self._parse("BRA 3")
+        assert nums_sem == nums_com
+        assert inv == []
+
+    def test_multiplos_formatos_mistos(self):
+        nums, inv = self._parse("BRA3 182 ARG 5")
+        assert len(nums) == 3
+        assert inv == []
+
+    def test_token_invalido(self):
+        nums, inv = self._parse("XPTO99")
+        assert nums == []
+        assert "XPTO99" in inv
+
+    def test_virgula_como_separador(self):
+        nums, inv = self._parse("BRA3,BRA5")
+        assert len(nums) == 2
+        assert inv == []
+
+    def test_entrada_vazia(self):
+        nums, inv = self._parse("")
+        assert nums == []
+        assert inv == []
+
+    def test_minusculo_aceito(self):
+        nums, inv = self._parse("bra3")
+        assert len(nums) == 1
+        assert inv == []
 
 
 # ---------------------------------------------------------------------------
