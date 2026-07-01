@@ -30,6 +30,7 @@ from logic import (
     build_map, pais_label,
     _texto_whatsapp, _html_impressao,
     _pre_processar, _extrair_codigos,
+    _classificar_pacote, _formatar_lista_repetidas,
 )
 
 st.set_page_config(
@@ -427,38 +428,34 @@ with tab_resumo:
     stats = stats.sort_values("Tenho", ascending=False)
     stats["Seleção"] = stats["Pais"].apply(pais_label)
 
-    _rows = ""
+    if st.session_state.get("_resumo_selecionado"):
+        _sel = st.session_state.pop("_resumo_selecionado")
+        st.session_state.time_sel = _sel
+        st.info(f"**{pais_label(_sel)}** selecionado — vá para a aba **Por Time** para ver e editar.")
+
     for _i, (_, _r) in enumerate(stats.iterrows()):
         _pt = _r["Tenho"] / _r["Total"] * 100
-        _bg = "#FAFBFF" if _i % 2 == 0 else "#FFFFFF"
-        _ck = "✅" if _r["✅"] else ""
-        _rows += f"""<tr style="background:{_bg};">
-          <td style="padding:7px 10px;font-size:0.83rem;color:#0D1B2A;border-bottom:1px solid #F1F5F9;">{_r["Seleção"]}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #F1F5F9;">
-            <div style="display:flex;align-items:center;gap:7px;">
-              <div style="flex:1;background:#E2E8F0;border-radius:99px;height:10px;overflow:hidden;min-width:60px;">
-                <div style="background:linear-gradient(90deg,#B8720A,#E8B800);width:{_pt:.0f}%;height:100%;border-radius:99px;"></div>
-              </div>
-              <span style="font-size:0.76rem;color:#64748B;white-space:nowrap;">{int(_r["Tenho"])}/{int(_r["Total"])}</span>
-            </div>
-          </td>
-          <td style="padding:7px 10px;text-align:center;font-size:0.9rem;border-bottom:1px solid #F1F5F9;">{_ck}</td>
-        </tr>"""
-
-    st.markdown(f"""
-<div style="border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;margin-top:8px;">
-  <table style="width:100%;border-collapse:collapse;background:#FFFFFF;">
-    <thead>
-      <tr style="background:#EEF2FF;">
-        <th style="padding:9px 10px;text-align:left;font-size:0.78rem;color:#003DA5;font-weight:700;letter-spacing:0.03em;border-bottom:2px solid #D1D5DB;">SELEÇÃO</th>
-        <th style="padding:9px 10px;text-align:left;font-size:0.78rem;color:#003DA5;font-weight:700;letter-spacing:0.03em;border-bottom:2px solid #D1D5DB;">PROGRESSO</th>
-        <th style="padding:9px 10px;text-align:center;font-size:0.78rem;color:#003DA5;font-weight:700;letter-spacing:0.03em;border-bottom:2px solid #D1D5DB;">OK</th>
-      </tr>
-    </thead>
-    <tbody>{_rows}</tbody>
-  </table>
-</div>
-""", unsafe_allow_html=True)
+        _ck = " ✅" if _r["✅"] else ""
+        _pais = _r["Pais"]
+        _col_btn, _col_bar = st.columns([2, 3])
+        with _col_btn:
+            if st.button(
+                f"{_r['Seleção']}{_ck}",
+                key=f"resumo_{_pais}",
+                use_container_width=True,
+            ):
+                st.session_state["_resumo_selecionado"] = _pais
+                st.rerun()
+        with _col_bar:
+            st.markdown(
+                f"<div style='display:flex;align-items:center;gap:8px;height:38px;'>"
+                f"<div style='flex:1;background:#E2E8F0;border-radius:99px;height:10px;overflow:hidden;'>"
+                f"<div style='background:linear-gradient(90deg,#B8720A,#E8B800);width:{_pt:.0f}%;height:100%;border-radius:99px;'></div>"
+                f"</div>"
+                f"<span style='font-size:0.76rem;color:#64748B;white-space:nowrap;'>{int(_r['Tenho'])}/{int(_r['Total'])}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
 
 
 # ── Por Time ─────────────────────────────────────────────────────────────────
@@ -775,7 +772,7 @@ with tab_scanner:
 
             st.divider()
             st.write("**Confirmar como:**")
-            c1, c2 = st.columns(2)
+            c1, c2, c3 = st.columns(3)
 
             with c1:
                 if st.button("🟢 Tenho", use_container_width=True, key="scan_tenho"):
@@ -789,6 +786,12 @@ with tab_scanner:
                     reps = max(1, int(fig["Repetidas"]) + 1)
                     salvar([(int(fig["_row"]), "repetida", reps)])
                     st.success(f"{fig['Codigo']} marcado como **repetida** ({reps}x)!")
+                    st.rerun()
+
+            with c3:
+                if st.button("🔴 Faltante", use_container_width=True, key="scan_falt"):
+                    salvar([(int(fig["_row"]), "faltante", 0)])
+                    st.success(f"{fig['Codigo']} marcado como **faltante**!")
                     st.rerun()
 
 
@@ -805,7 +808,7 @@ with tab_pacote:
         key="pacote_entrada",
     )
 
-    if st.button("✅ Adicionar figurinhas", type="primary", use_container_width=True, key="pacote_btn"):
+    if st.button("🔍 Verificar figurinhas", type="primary", use_container_width=True, key="pacote_btn"):
         numeros_raw = re.split(r"[,\s\n]+", entrada.strip())
         numeros = [int(n) for n in numeros_raw if n.strip().isdigit()]
 
@@ -815,55 +818,50 @@ with tab_pacote:
             num_map = build_map()
             df_atual = load_df()
             by_code = df_atual.set_index("Codigo")
+            status_map = {
+                code: (row["Status"], int(row["Repetidas"]), int(row["_row"]))
+                for code, row in by_code.iterrows()
+            }
 
-            novas, repetidas_lst, desconhecidos = [], [], []
-            updates = []
+            novas, ja_coletadas, repetidas_lst, desconhecidos, updates = _classificar_pacote(
+                numeros, num_map, status_map
+            )
+            st.session_state["pacote_preview"] = (novas, ja_coletadas, repetidas_lst, desconhecidos, updates)
+            st.rerun()
 
-            for n in sorted(set(numeros)):
-                code = num_map.get(n)
-                if not code or code not in by_code.index:
-                    desconhecidos.append(n)
-                    continue
-                row_data = by_code.loc[code]
-                status = row_data["Status"]
-                reps_atual = int(row_data["Repetidas"])
-                row_num = int(row_data["_row"])
+    if "pacote_preview" in st.session_state:
+        novas, ja_coletadas, repetidas_lst, desconhecidos, updates = st.session_state["pacote_preview"]
 
-                if status == "faltante":
-                    updates.append((row_num, "tenho", 0))
-                    novas.append((n, code))
-                elif status == "tenho":
-                    updates.append((row_num, "repetida", 1))
-                    repetidas_lst.append((n, code, 1))
-                else:
-                    nova_qtd = reps_atual + 1
-                    updates.append((row_num, "repetida", nova_qtd))
-                    repetidas_lst.append((n, code, nova_qtd))
+        st.divider()
+        st.write("**Preview — o que será salvo:**")
 
-            if updates:
+        if novas:
+            st.success(f"🟢 {len(novas)} nova(s) — passam para **tenho**")
+            st.code("\n".join(f"{n:>4}  {code}" for n, code in novas), language=None)
+
+        if ja_coletadas:
+            st.warning(f"🟡 {len(ja_coletadas)} já coletada(s) — passam para **repetida**")
+            st.code("\n".join(f"{n:>4}  {code}" for n, code in ja_coletadas), language=None)
+
+        if repetidas_lst:
+            st.warning(f"🟡 {len(repetidas_lst)} repetida(s) — contador incrementado")
+            st.code("\n".join(f"{n:>4}  {code}  (extras: {qtd})" for n, code, qtd in repetidas_lst), language=None)
+
+        if desconhecidos:
+            st.error(f"⚠️ Números não encontrados: {desconhecidos}")
+
+        if updates:
+            if st.button("✅ Confirmar e salvar", type="primary", use_container_width=True, key="pacote_confirmar"):
                 with st.spinner("Salvando no Google Sheets..."):
                     salvar(updates)
-
+                del st.session_state["pacote_preview"]
                 df_total = load_df()
                 total_tenho = int(df_total["Status"].isin(["tenho", "repetida"]).sum())
-
-                if novas:
-                    st.success(f"✅ {len(novas)} figurinha(s) nova(s) adicionada(s)!")
-                    st.code("\n".join(f"{n:>4}  {code}" for n, code in novas), language=None)
-
-                if repetidas_lst:
-                    st.warning(f"🟡 {len(repetidas_lst)} repetida(s) registrada(s).")
-                    st.code(
-                        "\n".join(f"{n:>4}  {code}  (extras: {qtd})" for n, code, qtd in repetidas_lst),
-                        language=None,
-                    )
-
-                if desconhecidos:
-                    st.error(f"⚠️ Números não encontrados: {desconhecidos}")
-
-                st.info(f"📊 Total no álbum agora: **{total_tenho}/980** ({total_tenho/980*100:.1f}%)")
-            else:
-                st.warning("Nenhuma atualização necessária.")
+                st.success(f"Salvo! Total no álbum: **{total_tenho}/980** ({total_tenho/980*100:.1f}%)")
+                st.rerun()
+        else:
+            st.info("Nenhuma atualização necessária.")
+            del st.session_state["pacote_preview"]
 
 
 # ── Listas ────────────────────────────────────────────────────────────────────
@@ -933,14 +931,9 @@ with tab_listas:
         if repetidas.empty:
             st.info("Nenhuma repetida ainda.")
         else:
-            linhas = []
-            for _, fig in repetidas.iterrows():
-                extras = int(fig["Repetidas"])
-                sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
-                linhas.append(f"{fig['Codigo']} — {fig['Descricao']} ({pais_label(fig['Pais'])}){sufixo}")
-
-            st.code("\n".join(linhas), language=None)
-            st.caption("Copie a lista acima e compartilhe com quem quiser trocar!")
+            _num_map_inv = {v: k for k, v in build_map().items()}
+            st.code(_formatar_lista_repetidas(repetidas, _num_map_inv), language=None)
+            st.caption("# = número sequencial do álbum. Copie e compartilhe com quem quiser trocar!")
 
     with sub_troca:
         st.caption("Cole os números das figurinhas que **faltam ao seu amigo** para ver o que você pode oferecer.")

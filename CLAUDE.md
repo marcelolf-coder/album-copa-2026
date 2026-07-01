@@ -89,11 +89,23 @@ for i in range(0, len(paises), 3):
 ```
 Essa regra vale para qualquer grade de itens no app.
 
+## Aba Resumo — detalhes
+- Tabela de seleções é clicável: click pré-seleciona o time em `st.session_state.time_sel` via chave `_resumo_selecionado` e exibe aviso pedindo ao usuário para ir para aba Por Time
+
+## Aba Pacote — detalhes
+- Fluxo em dois passos: **Verificar** → preview com 4 categorias (novas, já coletadas, repetidas, desconhecidos) → **Confirmar e salvar**
+- "Já coletadas" = figurinhas que já eram `tenho` e passarão para `repetida` — o preview avisa antes de sobrescrever
+- Lógica de classificação está em `logic.py` → `_classificar_pacote(numeros, num_map, status_map)`
+
+## Aba Scanner — detalhes
+- Três botões: 🟢 Tenho / 🟡 Repetida / 🔴 Faltante — permite desfazer um scan errado marcando como faltante
+
 ## Aba Listas — detalhes
 - Radio de seleção: "Somente faltantes" / "Somente para trocar" / "Faltantes + Para trocar"
 - **Baixar para impressão (A4)**: gera HTML para Ctrl+P
 - **Exportar WhatsApp**: botão verde que abre o WhatsApp com a lista pronta para enviar
 - O `download_button` e o componente HTML do WhatsApp recebem `key` derivado da opção do radio — garante que o widget é recriado ao mudar a seleção, evitando o bug de precisar clicar duas vezes
+- Subtab **Para trocar**: lista inclui número sequencial (`#NNN`) de cada figurinha para facilitar comunicação em trocas
 
 ### Formato da mensagem WhatsApp
 ```

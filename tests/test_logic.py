@@ -11,6 +11,8 @@ from logic import (
     _texto_whatsapp,
     _html_impressao,
     _extrair_codigos,
+    _classificar_pacote,
+    _formatar_lista_repetidas,
 )
 
 
@@ -241,3 +243,119 @@ class TestExtrairCodigos:
         ocr = _mock_ocr([(None, "bra5", 0.9)])
         resultado = _extrair_codigos(_imagem_branca(), CODIGOS_VALIDOS, ocr)
         assert resultado == ["BRA5"]
+
+
+# ---------------------------------------------------------------------------
+# _classificar_pacote
+# ---------------------------------------------------------------------------
+
+def _status_map(*entries):
+    """Helper: cria status_map {codigo: (status, reps, row_num)}."""
+    return {code: (status, reps, row) for code, status, reps, row in entries}
+
+
+class TestClassificarPacote:
+    def setup_method(self):
+        self.num_map = {1: "BRA1", 2: "BRA2", 3: "ARG1", 99: "MEX1"}
+
+    def test_faltante_vira_tenho(self):
+        sm = _status_map(("BRA1", "faltante", 0, 10))
+        novas, ja, reps, desc, updates = _classificar_pacote([1], self.num_map, sm)
+        assert novas == [(1, "BRA1")]
+        assert updates == [(10, "tenho", 0)]
+        assert ja == [] and reps == [] and desc == []
+
+    def test_tenho_vira_repetida_1(self):
+        sm = _status_map(("BRA1", "tenho", 0, 10))
+        novas, ja, reps, desc, updates = _classificar_pacote([1], self.num_map, sm)
+        assert ja == [(1, "BRA1")]
+        assert updates == [(10, "repetida", 1)]
+        assert novas == [] and reps == []
+
+    def test_repetida_incrementa(self):
+        sm = _status_map(("BRA1", "repetida", 3, 10))
+        novas, ja, reps, desc, updates = _classificar_pacote([1], self.num_map, sm)
+        assert reps == [(1, "BRA1", 4)]
+        assert updates == [(10, "repetida", 4)]
+
+    def test_numero_desconhecido(self):
+        sm = _status_map(("BRA1", "faltante", 0, 10))
+        novas, ja, reps, desc, updates = _classificar_pacote([999], self.num_map, sm)
+        assert desc == [999]
+        assert updates == []
+
+    def test_duplicatas_no_input_processadas_uma_vez(self):
+        sm = _status_map(("BRA1", "faltante", 0, 10))
+        novas, ja, reps, desc, updates = _classificar_pacote([1, 1, 1], self.num_map, sm)
+        assert len(novas) == 1
+        assert len(updates) == 1
+
+    def test_multiplos_numeros_mistos(self):
+        sm = _status_map(
+            ("BRA1", "faltante", 0, 10),
+            ("BRA2", "tenho", 0, 11),
+            ("ARG1", "repetida", 2, 12),
+        )
+        novas, ja, reps, desc, updates = _classificar_pacote([1, 2, 3, 50], self.num_map, sm)
+        assert len(novas) == 1
+        assert len(ja) == 1
+        assert len(reps) == 1
+        assert desc == [50]
+        assert len(updates) == 3
+
+    def test_saida_ordenada_por_numero(self):
+        sm = _status_map(
+            ("BRA2", "faltante", 0, 11),
+            ("BRA1", "faltante", 0, 10),
+        )
+        novas, _, _, _, _ = _classificar_pacote([2, 1], self.num_map, sm)
+        assert [n for n, _ in novas] == [1, 2]
+
+
+# ---------------------------------------------------------------------------
+# _formatar_lista_repetidas
+# ---------------------------------------------------------------------------
+
+class TestFormatarListaRepetidas:
+    def setup_method(self):
+        num_map = build_map()
+        self.num_map_inv = {v: k for k, v in num_map.items()}
+
+    def _rep_df(self, rows):
+        return pd.DataFrame(rows, columns=["Codigo", "Pais", "Descricao", "Status", "Repetidas"])
+
+    def test_formato_basico(self):
+        df = self._rep_df([("BRA1", "Brasil", "Alisson", "repetida", 2)])
+        resultado = _formatar_lista_repetidas(df, self.num_map_inv)
+        assert "BRA1" in resultado
+        assert "Alisson" in resultado
+        assert "+2 extras" in resultado
+
+    def test_numero_sequencial_presente(self):
+        df = self._rep_df([("BRA1", "Brasil", "Alisson", "repetida", 1)])
+        resultado = _formatar_lista_repetidas(df, self.num_map_inv)
+        seq = self.num_map_inv.get("BRA1")
+        assert f"#{seq:>4}" in resultado
+
+    def test_singular_extra(self):
+        df = self._rep_df([("BRA1", "Brasil", "Alisson", "repetida", 1)])
+        resultado = _formatar_lista_repetidas(df, self.num_map_inv)
+        assert "+1 extra)" in resultado
+
+    def test_plural_extras(self):
+        df = self._rep_df([("BRA1", "Brasil", "Alisson", "repetida", 3)])
+        resultado = _formatar_lista_repetidas(df, self.num_map_inv)
+        assert "+3 extras)" in resultado
+
+    def test_codigo_sem_sequencial_mostra_interrogacao(self):
+        df = self._rep_df([("XPTO1", "Brasil", "Jogador", "repetida", 1)])
+        resultado = _formatar_lista_repetidas(df, self.num_map_inv)
+        assert "#   ?" in resultado
+
+    def test_multiplas_linhas(self):
+        df = self._rep_df([
+            ("BRA1", "Brasil", "Alisson", "repetida", 1),
+            ("ARG3", "Argentina", "Messi", "repetida", 2),
+        ])
+        resultado = _formatar_lista_repetidas(df, self.num_map_inv)
+        assert resultado.count("\n") == 1

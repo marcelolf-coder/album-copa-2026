@@ -266,3 +266,63 @@ def _extrair_codigos(foto: Image.Image, codigos_validos: set, ocr) -> list:
             if codigo in codigos_validos:
                 encontrados.append(codigo)
     return list(dict.fromkeys(encontrados))
+
+
+# ---------------------------------------------------------------------------
+# Lógica do Pacote
+# ---------------------------------------------------------------------------
+
+def _classificar_pacote(numeros: list, num_map: dict, status_map: dict) -> tuple:
+    """
+    Classifica números de figurinhas do pacote pelo status atual.
+
+    status_map: {codigo: (status, repetidas_atual, row_num)}
+    Retorna: (novas, ja_coletadas, repetidas_lst, desconhecidos, updates)
+      - novas: [(num, codigo)]
+      - ja_coletadas: [(num, codigo)]  — já eram 'tenho', viram 'repetida'
+      - repetidas_lst: [(num, codigo, nova_qtd)]
+      - desconhecidos: [num]
+      - updates: [(row_num, novo_status, novas_reps)]
+    """
+    novas, ja_coletadas, repetidas_lst, desconhecidos, updates = [], [], [], [], []
+
+    for n in sorted(set(numeros)):
+        code = num_map.get(n)
+        if not code or code not in status_map:
+            desconhecidos.append(n)
+            continue
+        status, reps_atual, row_num = status_map[code]
+
+        if status == "faltante":
+            updates.append((row_num, "tenho", 0))
+            novas.append((n, code))
+        elif status == "tenho":
+            updates.append((row_num, "repetida", 1))
+            ja_coletadas.append((n, code))
+        else:
+            nova_qtd = reps_atual + 1
+            updates.append((row_num, "repetida", nova_qtd))
+            repetidas_lst.append((n, code, nova_qtd))
+
+    return novas, ja_coletadas, repetidas_lst, desconhecidos, updates
+
+
+# ---------------------------------------------------------------------------
+# Formatação da lista de repetidas com número sequencial
+# ---------------------------------------------------------------------------
+
+def _formatar_lista_repetidas(repetidas: pd.DataFrame, num_map_inv: dict) -> str:
+    """
+    Formata a lista de figurinhas repetidas incluindo o número sequencial.
+
+    num_map_inv: {codigo: posicao_sequencial} — inverso de build_map()
+    Retorna string pronta para exibição.
+    """
+    linhas = []
+    for _, fig in repetidas.iterrows():
+        codigo = fig["Codigo"]
+        extras = int(fig["Repetidas"])
+        seq = num_map_inv.get(codigo, "?")
+        sufixo = f"  (+{extras} extra{'s' if extras != 1 else ''})" if extras > 0 else ""
+        linhas.append(f"#{seq:>4}  {codigo} — {fig['Descricao']} ({pais_label(fig['Pais'])}){sufixo}")
+    return "\n".join(linhas)
