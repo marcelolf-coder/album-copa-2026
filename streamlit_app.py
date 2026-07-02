@@ -249,7 +249,7 @@ COLS_GRID = 3
 # ---------------------------------------------------------------------------
 
 @st.cache_resource
-def get_worksheet():
+def get_spreadsheet():
     try:
         creds_info = dict(st.secrets["google_service_account"])
         sheet_id = st.secrets["sheet_id"]
@@ -261,7 +261,51 @@ def get_worksheet():
             sheet_id = json.load(f)["sheet_id"]
 
     gc = gspread.service_account_from_dict(creds_info)
-    return gc.open_by_key(sheet_id).sheet1
+    return gc.open_by_key(sheet_id)
+
+
+@st.cache_resource
+def get_worksheet():
+    return get_spreadsheet().sheet1
+
+
+@st.cache_resource
+def get_worksheet_legends():
+    sh = get_spreadsheet()
+    try:
+        ws = sh.worksheet("Legends")
+    except gspread.exceptions.WorksheetNotFound:
+        ws = sh.add_worksheet(title="Legends", rows=100, cols=4)
+        header = ["Jogador", "Pais", "Variacao", "Status"]
+        rows = [header] + [
+            [jogador, pais, var, "faltante"]
+            for _, pais, jogador in LEGENDS
+            for var in LEGENDS_VARIAÇÕES
+        ]
+        ws.update(rows, "A1")
+    return ws
+
+
+@st.cache_data(ttl=30)
+def load_legends() -> dict:
+    """Retorna {(prefix, variacao): status}"""
+    ws = get_worksheet_legends()
+    records = ws.get_all_records()
+    prefix_map = {jogador: prefix for prefix, _, jogador in LEGENDS}
+    result = {}
+    for i, r in enumerate(records):
+        prefix = prefix_map.get(r.get("Jogador", ""))
+        var = r.get("Variacao", "")
+        status = r.get("Status", "faltante")
+        if prefix and var:
+            result[(prefix, var)] = (status, i + 2)  # +2 = row na planilha (header=1)
+    return result
+
+
+def salvar_legend(row_num: int, status: str):
+    ws = get_worksheet_legends()
+    ws.update_cell(row_num, 4, status)
+    load_legends.clear()
 
 
 @st.cache_data(ttl=30)
@@ -1029,18 +1073,13 @@ with tab_legends:
     st.subheader("⭐ Extra Stickers — Legends")
     st.caption("Figurinhas especiais que saem aleatoriamente nos pacotes (média: 1 a cada 100 pacotes). Não colam no álbum. Disponíveis em 4 variações.")
 
-    # Session state para status de cada legend
-    for _prefix, _, _jogador in LEGENDS:
-        for _var in LEGENDS_VARIAÇÕES:
-            _key = f"leg_{_prefix}_{_var}"
-            if _key not in st.session_state:
-                st.session_state[_key] = "faltante"
+    _legends_data = load_legends()
 
     # Contadores globais
     _total_leg = len(LEGENDS) * len(LEGENDS_VARIAÇÕES)
     _tenho_leg = sum(
         1 for _prefix, _, _ in LEGENDS for _var in LEGENDS_VARIAÇÕES
-        if st.session_state.get(f"leg_{_prefix}_{_var}") in ("tenho", "repetida")
+        if _legends_data.get((_prefix, _var), ("faltante",))[0] in ("tenho", "repetida")
     )
     _pct_leg = _tenho_leg / _total_leg * 100
 
@@ -1062,7 +1101,7 @@ with tab_legends:
         _flag = BANDEIRAS.get(_pais, "")
         _tenho_p = sum(
             1 for _var in LEGENDS_VARIAÇÕES
-            if st.session_state.get(f"leg_{_prefix}_{_var}") in ("tenho", "repetida")
+            if _legends_data.get((_prefix, _var), ("faltante",))[0] in ("tenho", "repetida")
         )
         _completo = " ✅" if _tenho_p == len(LEGENDS_VARIAÇÕES) else ""
 
@@ -1072,8 +1111,8 @@ with tab_legends:
                 _cols = st.columns(2)
                 for _col, _var in zip(_cols, _chunk):
                     with _col:
-                        _key = f"leg_{_prefix}_{_var}"
-                        _status = st.session_state[_key]
+                        _entry = _legends_data.get((_prefix, _var), ("faltante", None))
+                        _status, _row_num = _entry
                         _cor_texto, _cor_bg = LEGENDS_COR[_var]
                         _emoji_var = LEGENDS_EMOJI[_var]
 
@@ -1088,17 +1127,20 @@ with tab_legends:
                         )
                         _c1, _c2, _c3 = st.columns(3)
                         with _c1:
-                            if st.button("🟢", key=f"{_key}_tenho", use_container_width=True,
+                            if st.button("🟢", key=f"leg_{_prefix}_{_var}_tenho", use_container_width=True,
                                          help="Tenho", type="primary" if _status == "tenho" else "secondary"):
-                                st.session_state[_key] = "tenho"
+                                if _row_num:
+                                    salvar_legend(_row_num, "tenho")
                                 st.rerun()
                         with _c2:
-                            if st.button("🟡", key=f"{_key}_rep", use_container_width=True,
+                            if st.button("🟡", key=f"leg_{_prefix}_{_var}_rep", use_container_width=True,
                                          help="Repetida", type="primary" if _status == "repetida" else "secondary"):
-                                st.session_state[_key] = "repetida"
+                                if _row_num:
+                                    salvar_legend(_row_num, "repetida")
                                 st.rerun()
                         with _c3:
-                            if st.button("🔴", key=f"{_key}_falt", use_container_width=True,
+                            if st.button("🔴", key=f"leg_{_prefix}_{_var}_falt", use_container_width=True,
                                          help="Faltante", type="primary" if _status == "faltante" else "secondary"):
-                                st.session_state[_key] = "faltante"
+                                if _row_num:
+                                    salvar_legend(_row_num, "faltante")
                                 st.rerun()
