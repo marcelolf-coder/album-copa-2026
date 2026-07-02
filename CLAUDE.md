@@ -65,12 +65,16 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 | `setup_sheet.py` | Setup inicial do Google Sheet |
 
 ## App Streamlit (6 abas)
-1. **Resumo** — barra de progresso + métricas globais + tabela por seleção
+1. **Resumo** — barra de progresso + métricas globais + tabela clicável por seleção + seções especiais
 2. **Por Time** — grade de figurinhas por seleção com edição inline; times ordenados alfabeticamente sem considerar acentos
 3. **Busca** — busca por código (ex: `BRA5`) ou nome do jogador
 4. **Scanner** — OCR via câmera (`st.camera_input` + `rapidocr-onnxruntime`); pré-processa a imagem (grayscale → sharpen → contrast 2× → resize 2×), extrai códigos via regex contra lista de prefixos válidos com confiança ≥ 0.5; se detectar mais de um código, exibe `selectbox` para o usuário confirmar
-5. **Pacote** — entrada de figurinhas por número sequencial do álbum
+5. **Pacote** — entrada de figurinhas por código (`BRA3`, `BRA 3`) ou número sequencial (`182`), com preview antes de salvar
 6. **Listas** — botão imprimir HTML A4 + botão Exportar WhatsApp + subabas faltantes/repetidas/trocas
+
+## Aba Resumo — detalhes
+- Tabela de times é clicável: click pré-seleciona em `st.session_state.time_sel` e exibe aviso para ir à aba Por Time
+- Seções especiais (Introdução, FWC Host, FWC History, Coca-Cola) aparecem em bloco separado abaixo dos times, também clicáveis, navegando para as respectivas seções em Por Time
 
 ## Aba Por Time — detalhes
 - Grid inicial mostra todas as seleções em **ordem alfabética sem considerar acentos** (ex: África do Sul, Alemanha, Arábia Saudita...)
@@ -89,13 +93,12 @@ for i in range(0, len(paises), 3):
 ```
 Essa regra vale para qualquer grade de itens no app.
 
-## Aba Resumo — detalhes
-- Tabela de seleções é clicável: click pré-seleciona o time em `st.session_state.time_sel` via chave `_resumo_selecionado` e exibe aviso pedindo ao usuário para ir para aba Por Time
-
 ## Aba Pacote — detalhes
-- Fluxo em dois passos: **Verificar** → preview com 4 categorias (novas, já coletadas, repetidas, desconhecidos) → **Confirmar e salvar**
+- Aceita **códigos** (`BRA3`, `BRA 3`) e **números sequenciais** (`182`) no mesmo input, inclusive misturados
+- Fluxo em dois passos: **Verificar** → preview categorizado (novas / já coletadas / repetidas / não reconhecidos) → **Confirmar e salvar**
 - "Já coletadas" = figurinhas que já eram `tenho` e passarão para `repetida` — o preview avisa antes de sobrescrever
-- Lógica de classificação está em `logic.py` → `_classificar_pacote(numeros, num_map, status_map)`
+- Parser: `_parsear_entrada_pacote(texto, num_map, codigos_validos)` em `logic.py`
+- Classificação: `_classificar_pacote(numeros, num_map, status_map)` em `logic.py`
 
 ## Aba Scanner — detalhes
 - Três botões: 🟢 Tenho / 🟡 Repetida / 🔴 Faltante — permite desfazer um scan errado marcando como faltante
@@ -105,7 +108,7 @@ Essa regra vale para qualquer grade de itens no app.
 - **Baixar para impressão (A4)**: gera HTML para Ctrl+P
 - **Exportar WhatsApp**: botão verde que abre o WhatsApp com a lista pronta para enviar
 - O `download_button` e o componente HTML do WhatsApp recebem `key` derivado da opção do radio — garante que o widget é recriado ao mudar a seleção, evitando o bug de precisar clicar duas vezes
-- Subtab **Para trocar**: lista inclui número sequencial (`#NNN`) de cada figurinha para facilitar comunicação em trocas
+- Subtab **Trocas**: aceita códigos (`BRA3`, `BRA 3`) ou números sequenciais — mesmo parser do Pacote; mostra apenas figurinhas repetidas que pode oferecer
 
 ### Formato da mensagem WhatsApp
 ```
@@ -155,6 +158,8 @@ Os testes cobrem toda a lógica de negócio em `logic.py` e rodam sem Google She
 ```bash
 pytest tests/test_logic.py -v
 ```
+
+Funções cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote` — 57 testes no total.
 
 **Regras de desenvolvimento:**
 - Toda alteração de código deve ser acompanhada de testes unitários quando a lógica alterada for testável (funções puras em `logic.py`)
