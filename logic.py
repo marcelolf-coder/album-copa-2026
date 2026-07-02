@@ -107,14 +107,14 @@ LEGENDS = [
 LEGENDS_VARIAÇÕES = ["normal", "bronze", "prata", "ouro"]
 
 LEGENDS_COR = {
-    "normal": ("#6B7280", "#F3F4F6"),   # cinza
+    "normal": ("#6D28D9", "#EDE9FE"),   # roxo
     "bronze": ("#92400E", "#FEF3C7"),   # bronze
     "prata":  ("#374151", "#E5E7EB"),   # prata
     "ouro":   ("#92400E", "#FEF9C3"),   # ouro
 }
 
 LEGENDS_EMOJI = {
-    "normal": "⚪",
+    "normal": "🟣",
     "bronze": "🥉",
     "prata":  "🥈",
     "ouro":   "🥇",
