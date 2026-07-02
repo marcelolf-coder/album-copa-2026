@@ -408,7 +408,6 @@ with tab_resumo:
     st.divider()
     st.subheader("Por seleção")
 
-    # Excluir FWC, sticker 00 e CC da tabela de seleções
     _excluir_mask = (
         df["Codigo"].str.startswith("FWC", na=False) |
         df["Codigo"].str.startswith("CC", na=False) |
@@ -454,6 +453,43 @@ with tab_resumo:
                 f"<div style='background:linear-gradient(90deg,#B8720A,#E8B800);width:{_pt:.0f}%;height:100%;border-radius:99px;'></div>"
                 f"</div>"
                 f"<span style='font-size:0.76rem;color:#64748B;white-space:nowrap;'>{int(_r['Tenho'])}/{int(_r['Total'])}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    # Seções especiais
+    st.divider()
+    st.subheader("Seções especiais")
+
+    _especiais = [
+        ("📖 Introdução",          df[df["Codigo"] == "00"]),
+        ("⭐ FWC — Host Countries", df[df["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]),
+        ("🏆 FWC — History",       df[df["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]),
+        ("🥤 Coca-Cola",           df[df["Codigo"].str.startswith("CC", na=False)]),
+    ]
+
+    for _label, _df_esp in _especiais:
+        if _df_esp.empty:
+            continue
+        _tenho_esp = int(_df_esp["Status"].isin(["tenho", "repetida"]).sum())
+        _total_esp = len(_df_esp)
+        _pt_esp = _tenho_esp / _total_esp * 100 if _total_esp else 0
+        _ck_esp = " ✅" if _tenho_esp == _total_esp else ""
+        _col_btn, _col_bar = st.columns([2, 3])
+        with _col_btn:
+            st.button(
+                f"{_label}{_ck_esp}",
+                key=f"resumo_esp_{_label}",
+                use_container_width=True,
+                disabled=True,
+            )
+        with _col_bar:
+            st.markdown(
+                f"<div style='display:flex;align-items:center;gap:8px;height:38px;'>"
+                f"<div style='flex:1;background:#E2E8F0;border-radius:99px;height:10px;overflow:hidden;'>"
+                f"<div style='background:linear-gradient(90deg,#B8720A,#E8B800);width:{_pt_esp:.0f}%;height:100%;border-radius:99px;'></div>"
+                f"</div>"
+                f"<span style='font-size:0.76rem;color:#64748B;white-space:nowrap;'>{_tenho_esp}/{_total_esp}</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
