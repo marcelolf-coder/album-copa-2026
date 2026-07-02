@@ -64,13 +64,14 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 | `atualizar_descricoes.py` | Preenche nomes reais dos jogadores |
 | `setup_sheet.py` | Setup inicial do Google Sheet |
 
-## App Streamlit (6 abas)
-1. **Resumo** — barra de progresso + métricas globais + tabela clicável por seleção + seções especiais
+## App Streamlit (7 abas)
+1. **Resumo** — barra de progresso + métricas globais + tabela clicável por seleção + seções especiais clicáveis
 2. **Por Time** — grade de figurinhas por seleção com edição inline; times ordenados alfabeticamente sem considerar acentos
 3. **Busca** — busca por código (ex: `BRA5`) ou nome do jogador
 4. **Scanner** — OCR via câmera (`st.camera_input` + `rapidocr-onnxruntime`); pré-processa a imagem (grayscale → sharpen → contrast 2× → resize 2×), extrai códigos via regex contra lista de prefixos válidos com confiança ≥ 0.5; se detectar mais de um código, exibe `selectbox` para o usuário confirmar
 5. **Pacote** — entrada de figurinhas por código (`BRA3`, `BRA 3`) ou número sequencial (`182`), com preview antes de salvar
 6. **Listas** — botão imprimir HTML A4 + botão Exportar WhatsApp + subabas faltantes/repetidas/trocas
+7. **Legends** — Extra Stickers especiais em 4 variações (🟣 Normal / 🥉 Bronze / 🥈 Prata / 🥇 Ouro), persistidos no Google Sheets
 
 ## Aba Resumo — detalhes
 - Tabela de times é clicável: click pré-seleciona em `st.session_state.time_sel` e exibe aviso para ir à aba Por Time
@@ -102,6 +103,13 @@ Essa regra vale para qualquer grade de itens no app.
 
 ## Aba Scanner — detalhes
 - Três botões: 🟢 Tenho / 🟡 Repetida / 🔴 Faltante — permite desfazer um scan errado marcando como faltante
+
+## Aba Legends — detalhes
+- 20 jogadores × 4 variações = **80 combinações** rastreadas individualmente
+- Variações: 🟣 Normal / 🥉 Bronze / 🥈 Prata / 🥇 Ouro — cada uma com cor e emoji próprios definidos em `LEGENDS_COR` e `LEGENDS_EMOJI` em `logic.py`
+- Status (faltante/tenho/repetida) persistido na aba **"Legends"** do Google Sheets — criada automaticamente na primeira abertura via `get_worksheet_legends()`
+- Barra de progresso global + expander por jogador com bandeira e contador de variações
+- Fonte: [paninigroup.com/ExtraStickers](https://www.paninigroup.com/ExtraStickers)
 
 ## Aba Listas — detalhes
 - Radio de seleção: "Somente faltantes" / "Somente para trocar" / "Faltantes + Para trocar"
@@ -159,7 +167,7 @@ Os testes cobrem toda a lógica de negócio em `logic.py` e rodam sem Google She
 pytest tests/test_logic.py -v
 ```
 
-Funções cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote` — 57 testes no total.
+Funções e constantes cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote`, `LEGENDS`/`LEGENDS_VARIAÇÕES`/`LEGENDS_COR`/`LEGENDS_EMOJI` — **68 testes** no total.
 
 **Regras de desenvolvimento:**
 - Toda alteração de código deve ser acompanhada de testes unitários quando a lógica alterada for testável (funções puras em `logic.py`)

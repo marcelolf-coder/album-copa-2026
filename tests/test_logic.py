@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 from logic import (
     TEAMS,
+    LEGENDS, LEGENDS_VARIAÇÕES, LEGENDS_COR, LEGENDS_EMOJI,
     build_map,
     pais_label,
     _texto_whatsapp,
@@ -416,3 +417,58 @@ class TestFormatarListaRepetidas:
         ])
         resultado = _formatar_lista_repetidas(df, self.num_map_inv)
         assert resultado.count("\n") == 1
+
+
+# ---------------------------------------------------------------------------
+# Legends — constantes e integridade dos dados
+# ---------------------------------------------------------------------------
+
+class TestLegendsConstantes:
+    def test_total_de_jogadores(self):
+        assert len(LEGENDS) == 20
+
+    def test_total_de_variacoes(self):
+        assert len(LEGENDS_VARIAÇÕES) == 4
+
+    def test_variacoes_corretas(self):
+        assert LEGENDS_VARIAÇÕES == ["normal", "bronze", "prata", "ouro"]
+
+    def test_todos_prefixos_unicos(self):
+        prefixos = [p for p, _, _ in LEGENDS]
+        assert len(prefixos) == len(set(prefixos))
+
+    def test_todos_jogadores_unicos(self):
+        jogadores = [j for _, _, j in LEGENDS]
+        assert len(jogadores) == len(set(jogadores))
+
+    def test_cor_definida_para_todas_variacoes(self):
+        for var in LEGENDS_VARIAÇÕES:
+            assert var in LEGENDS_COR
+            cor_texto, cor_bg = LEGENDS_COR[var]
+            assert cor_texto.startswith("#")
+            assert cor_bg.startswith("#")
+
+    def test_emoji_definido_para_todas_variacoes(self):
+        for var in LEGENDS_VARIAÇÕES:
+            assert var in LEGENDS_EMOJI
+            assert len(LEGENDS_EMOJI[var]) > 0
+
+    def test_normal_usa_roxo(self):
+        cor_texto, cor_bg = LEGENDS_COR["normal"]
+        # roxo — componente R do hex deve ser menor que B (característica do roxo)
+        assert "6D28D9" in cor_texto or "EDE9FE" in cor_bg
+
+    def test_prefixos_pertencem_a_teams(self):
+        teams_prefixos = {p for p, _ in TEAMS}
+        for prefix, _, _ in LEGENDS:
+            assert prefix in teams_prefixos, f"{prefix} não está em TEAMS"
+
+    def test_paises_tem_bandeira(self):
+        from logic import BANDEIRAS
+        for _, pais, _ in LEGENDS:
+            assert pais in BANDEIRAS, f"{pais} não tem bandeira em BANDEIRAS"
+
+    def test_total_combinacoes(self):
+        # 20 jogadores × 4 variações = 80 combinações únicas
+        combinacoes = {(p, v) for p, _, _ in LEGENDS for v in LEGENDS_VARIAÇÕES}
+        assert len(combinacoes) == 80
