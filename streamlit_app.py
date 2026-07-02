@@ -1120,8 +1120,6 @@ with tab_legends:
                             f"<div style='background:{_cor_bg};border-radius:10px;padding:10px 12px;margin-bottom:6px;'>"
                             f"<div style='font-weight:700;font-size:0.9rem;color:{_cor_texto};'>"
                             f"{_emoji_var} {_var.capitalize()}</div>"
-                            f"<div style='font-size:0.75rem;color:#64748B;margin-top:2px;'>"
-                            f"{STATUS_ICON[_status]}</div>"
                             f"</div>",
                             unsafe_allow_html=True,
                         )
