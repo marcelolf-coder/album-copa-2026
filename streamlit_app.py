@@ -286,25 +286,79 @@ def get_worksheet_legends():
     return ws
 
 
-@st.cache_data(ttl=30)
-def load_legends() -> dict:
-    """Retorna {(prefix, variacao): status}"""
-    ws = get_worksheet_legends()
-    records = ws.get_all_records()
-    prefix_map = {jogador: prefix for prefix, _, jogador in LEGENDS}
+_LEGENDS_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "legends.csv")
+
+
+def _init_legends_csv():
+    if not os.path.exists(_LEGENDS_CSV):
+        import csv
+        with open(_LEGENDS_CSV, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Prefix", "Jogador", "Pais", "Variacao", "Status"])
+            for prefix, pais, jogador in LEGENDS:
+                for var in LEGENDS_VARIAÇÕES:
+                    writer.writerow([prefix, jogador, pais, var, "faltante"])
+
+
+def _load_legends_csv() -> dict:
+    import csv
+    _init_legends_csv()
     result = {}
-    for i, r in enumerate(records):
-        prefix = prefix_map.get(r.get("Jogador", ""))
-        var = r.get("Variacao", "")
-        status = r.get("Status", "faltante")
-        if prefix and var:
-            result[(prefix, var)] = (status, i + 2)  # +2 = row na planilha (header=1)
+    with open(_LEGENDS_CSV, newline="", encoding="utf-8-sig") as f:
+        for i, row in enumerate(csv.DictReader(f), start=2):
+            prefix = row.get("Prefix", "")
+            var = row.get("Variacao", "")
+            status = row.get("Status", "faltante")
+            if prefix and var:
+                result[(prefix, var)] = (status, i)
     return result
 
 
-def salvar_legend(row_num: int, status: str):
-    ws = get_worksheet_legends()
-    ws.update_cell(row_num, 4, status)
+def _salvar_legend_csv(prefix: str, variacao: str, status: str):
+    import csv
+    _init_legends_csv()
+    rows = []
+    with open(_LEGENDS_CSV, newline="", encoding="utf-8-sig") as f:
+        rows = list(csv.DictReader(f))
+    for row in rows:
+        if row["Prefix"] == prefix and row["Variacao"] == variacao:
+            row["Status"] = status
+            break
+    with open(_LEGENDS_CSV, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=["Prefix", "Jogador", "Pais", "Variacao", "Status"])
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+@st.cache_data(ttl=30)
+def load_legends() -> dict:
+    """Retorna {(prefix, variacao): (status, row_num)}. Tenta Sheets, cai para CSV."""
+    try:
+        ws = get_worksheet_legends()
+        records = ws.get_all_records()
+        prefix_map = {jogador: prefix for prefix, _, jogador in LEGENDS}
+        result = {}
+        for i, r in enumerate(records):
+            prefix = prefix_map.get(r.get("Jogador", ""))
+            var = r.get("Variacao", "")
+            status = r.get("Status", "faltante")
+            if prefix and var:
+                result[(prefix, var)] = (status, i + 2)
+        return result
+    except Exception:
+        return _load_legends_csv()
+
+
+def salvar_legend(row_num: int, status: str, prefix: str = "", variacao: str = ""):
+    # Grava no Sheets
+    try:
+        ws = get_worksheet_legends()
+        ws.update_cell(row_num, 4, status)
+    except Exception:
+        pass
+    # Grava no CSV (sempre)
+    if prefix and variacao:
+        _salvar_legend_csv(prefix, variacao, status)
     load_legends.clear()
 
 
@@ -982,7 +1036,7 @@ with tab_listas:
     # window.parent.open() contorna o sandbox do iframe e abre no contexto do frame pai.
     # api.whatsapp.com/send?text= abre o seletor de contatos no WhatsApp mobile.
     # key no html garante que o componente é recriado ao mudar a seleção do radio.
-    st.components.v1.html(f"""
+    st.iframe(f"""
 <script>var WPP_TEXT = {texto_json};</script>
 <button onclick="window.parent.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(WPP_TEXT), '_blank')"
   style="width:100%; padding:0.55rem 1rem; font-size:1rem; font-weight:600;
@@ -1128,17 +1182,17 @@ with tab_legends:
                             if st.button("🟢", key=f"leg_{_prefix}_{_var}_tenho", use_container_width=True,
                                          help="Tenho", type="primary" if _status == "tenho" else "secondary"):
                                 if _row_num:
-                                    salvar_legend(_row_num, "tenho")
+                                    salvar_legend(_row_num, "tenho", _prefix, _var)
                                 st.rerun()
                         with _c2:
                             if st.button("🟡", key=f"leg_{_prefix}_{_var}_rep", use_container_width=True,
                                          help="Repetida", type="primary" if _status == "repetida" else "secondary"):
                                 if _row_num:
-                                    salvar_legend(_row_num, "repetida")
+                                    salvar_legend(_row_num, "repetida", _prefix, _var)
                                 st.rerun()
                         with _c3:
                             if st.button("🔴", key=f"leg_{_prefix}_{_var}_falt", use_container_width=True,
                                          help="Faltante", type="primary" if _status == "faltante" else "secondary"):
                                 if _row_num:
-                                    salvar_legend(_row_num, "faltante")
+                                    salvar_legend(_row_num, "faltante", _prefix, _var)
                                 st.rerun()

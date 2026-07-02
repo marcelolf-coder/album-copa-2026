@@ -113,7 +113,9 @@ Essa regra vale para qualquer grade de itens no app.
   - 🥇 Ouro — fundo amarelo claro `#FEF9C3`, texto `#854D0E`
 - Card exibe apenas emoji + nome da variação; o botão destacado (primary) indica o status atual
 - Botões por variação: 🟢 Tenho / 🟡 Repetida / 🔴 Faltante
-- Status persistido na aba **"Legends"** do Google Sheets — criada automaticamente na primeira abertura via `get_worksheet_legends()`
+- Status persistido em **dois lugares**: aba "Legends" do Google Sheets (criada automaticamente via `get_worksheet_legends()`) + `legends.csv` local (criado automaticamente, no `.gitignore`)
+- `load_legends()` tenta Sheets primeiro; se falhar (sem internet/credenciais), usa `legends.csv` como fallback
+- `salvar_legend()` grava nos dois sempre que possível
 - Barra de progresso global + expander por jogador com bandeira e contador de variações
 - Fonte: [paninigroup.com/ExtraStickers](https://www.paninigroup.com/ExtraStickers)
 
@@ -141,9 +143,10 @@ Times ordenados conforme a ordem do álbum. FWC usa 🏆, times usam bandeira do
 
 ### Implementação do botão WhatsApp — lições aprendidas
 - `st.link_button` com `wa.me/?text=` não abre seletor de contatos no mobile
-- `navigator.share()` dentro de `st.components.v1.html` falha: o iframe é sandboxado
+- `navigator.share()` dentro de iframe falha: sandboxado
 - `postMessage` + `navigator.share()` falha: o gesto do usuário não sobrevive ao round-trip async
 - **Solução correta**: `window.parent.open()` chamado **diretamente no `onclick`** do botão HTML — contorna o sandbox do iframe, preserva o gesto do usuário, e funciona em mobile e desktop
+- Implementado via `st.iframe()` (substituto de `st.components.v1.html`, depreciado em Streamlit ≥ 1.58)
 - URL: `api.whatsapp.com/send?text=` abre o seletor de contatos (melhor que `wa.me/?text=`)
 - Texto passado por `json.dumps()` no Python — preserva emojis de bandeira sem encoding quebrado
 - Emojis de bandeira de países **funcionam** no Android/iOS; no Windows aparecem como `?` (limitação do Segoe UI Emoji)
