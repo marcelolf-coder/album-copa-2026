@@ -28,6 +28,7 @@ from streamlit_js_eval import streamlit_js_eval
 from logic import (
     STATUS_OPTIONS, STATUS_ICON, STATUS_LABEL,
     BANDEIRAS, PAIS_ALIAS, TEAMS, FWC_CODES, _FLAG_BY_PREFIX,
+    LEGENDS, LEGENDS_VARIAÇÕES, LEGENDS_COR, LEGENDS_EMOJI,
     build_map, pais_label,
     _texto_whatsapp, _html_impressao,
     _pre_processar, _extrair_codigos,
@@ -344,8 +345,8 @@ if "time_sel" not in st.session_state:
 # Abas
 # ---------------------------------------------------------------------------
 
-tab_resumo, tab_time, tab_busca, tab_scanner, tab_pacote, tab_listas = st.tabs(
-    ["📊 Resumo", "🏳️ Por Time", "🔍 Busca", "📷 Scanner", "📦 Pacote", "📋 Listas"]
+tab_resumo, tab_time, tab_busca, tab_scanner, tab_pacote, tab_listas, tab_legends = st.tabs(
+    ["📊 Resumo", "🏳️ Por Time", "🔍 Busca", "📷 Scanner", "📦 Pacote", "📋 Listas", "⭐ Legends"]
 )
 
 
@@ -1022,3 +1023,82 @@ with tab_listas:
                     ]
                     st.code("\n".join(linhas), language=None)
 
+
+# ── Legends ───────────────────────────────────────────────────────────────────
+with tab_legends:
+    st.subheader("⭐ Extra Stickers — Legends")
+    st.caption("Figurinhas especiais que saem aleatoriamente nos pacotes (média: 1 a cada 100 pacotes). Não colam no álbum. Disponíveis em 4 variações.")
+
+    # Session state para status de cada legend
+    for _prefix, _, _jogador in LEGENDS:
+        for _var in LEGENDS_VARIAÇÕES:
+            _key = f"leg_{_prefix}_{_var}"
+            if _key not in st.session_state:
+                st.session_state[_key] = "faltante"
+
+    # Contadores globais
+    _total_leg = len(LEGENDS) * len(LEGENDS_VARIAÇÕES)
+    _tenho_leg = sum(
+        1 for _prefix, _, _ in LEGENDS for _var in LEGENDS_VARIAÇÕES
+        if st.session_state.get(f"leg_{_prefix}_{_var}") in ("tenho", "repetida")
+    )
+    _pct_leg = _tenho_leg / _total_leg * 100
+
+    st.markdown(f"""
+<div style="margin:8px 0 4px;">
+  <div style="background:#E2E8F0;border-radius:99px;height:14px;overflow:hidden;">
+    <div style="background:linear-gradient(90deg,#B8720A,#E8B800);width:{_pct_leg:.1f}%;height:100%;border-radius:99px;"></div>
+  </div>
+</div>
+<p style="font-size:0.82rem;color:#64748B;margin:2px 0 14px;text-align:right;">
+  <strong style="color:#0D1B2A;">{_tenho_leg}</strong> de {_total_leg} variações coletadas
+  &nbsp;·&nbsp; <strong style="color:#C8962B;">{_pct_leg:.1f}%</strong>
+</p>
+""", unsafe_allow_html=True)
+
+    st.divider()
+
+    for _prefix, _pais, _jogador in LEGENDS:
+        _flag = BANDEIRAS.get(_pais, "")
+        _tenho_p = sum(
+            1 for _var in LEGENDS_VARIAÇÕES
+            if st.session_state.get(f"leg_{_prefix}_{_var}") in ("tenho", "repetida")
+        )
+        _completo = " ✅" if _tenho_p == len(LEGENDS_VARIAÇÕES) else ""
+
+        with st.expander(f"{_flag} **{_jogador}** — {_pais}{_completo}  ({_tenho_p}/{len(LEGENDS_VARIAÇÕES)})"):
+            for _i in range(0, len(LEGENDS_VARIAÇÕES), 2):
+                _chunk = LEGENDS_VARIAÇÕES[_i:_i + 2]
+                _cols = st.columns(2)
+                for _col, _var in zip(_cols, _chunk):
+                    with _col:
+                        _key = f"leg_{_prefix}_{_var}"
+                        _status = st.session_state[_key]
+                        _cor_texto, _cor_bg = LEGENDS_COR[_var]
+                        _emoji_var = LEGENDS_EMOJI[_var]
+
+                        st.markdown(
+                            f"<div style='background:{_cor_bg};border-radius:10px;padding:10px 12px;margin-bottom:6px;'>"
+                            f"<div style='font-weight:700;font-size:0.9rem;color:{_cor_texto};'>"
+                            f"{_emoji_var} {_var.capitalize()}</div>"
+                            f"<div style='font-size:0.75rem;color:#64748B;margin-top:2px;'>"
+                            f"Status: {STATUS_ICON[_status]} {_status}</div>"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+                        _c1, _c2, _c3 = st.columns(3)
+                        with _c1:
+                            if st.button("🟢", key=f"{_key}_tenho", use_container_width=True,
+                                         help="Tenho", type="primary" if _status == "tenho" else "secondary"):
+                                st.session_state[_key] = "tenho"
+                                st.rerun()
+                        with _c2:
+                            if st.button("🟡", key=f"{_key}_rep", use_container_width=True,
+                                         help="Repetida", type="primary" if _status == "repetida" else "secondary"):
+                                st.session_state[_key] = "repetida"
+                                st.rerun()
+                        with _c3:
+                            if st.button("🔴", key=f"{_key}_falt", use_container_width=True,
+                                         help="Faltante", type="primary" if _status == "faltante" else "secondary"):
+                                st.session_state[_key] = "faltante"
+                                st.rerun()

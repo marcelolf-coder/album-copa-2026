@@ -78,6 +78,49 @@ _CODIGO_RE = re.compile(
 )
 
 # ---------------------------------------------------------------------------
+# Extra Stickers — Legends
+# ---------------------------------------------------------------------------
+
+LEGENDS = [
+    ("ARG", "Argentina",  "Lionel Messi"),
+    ("BEL", "Bélgica",    "Jérémy Doku"),
+    ("BRA", "Brasil",     "Vinícius Júnior"),
+    ("CAN", "Canadá",     "Alphonso Davies"),
+    ("COL", "Colômbia",   "Luis Díaz"),
+    ("CRO", "Croácia",    "Luka Modrić"),
+    ("ECU", "Equador",    "Moisés Caicedo"),
+    ("EGY", "Egito",      "Mohamed Salah"),
+    ("ENG", "Inglaterra", "Jude Bellingham"),
+    ("FRA", "França",     "Kylian Mbappé"),
+    ("GER", "Alemanha",   "Florian Wirtz"),
+    ("KOR", "Coreia do Sul", "Heung-min Son"),
+    ("MAR", "Marrocos",   "Achraf Hakimi"),
+    ("MEX", "México",     "Raúl Jiménez"),
+    ("NED", "Países Baixos", "Cody Gakpo"),
+    ("NOR", "Noruega",    "Erling Haaland"),
+    ("POR", "Portugal",   "Cristiano Ronaldo"),
+    ("ESP", "Espanha",    "Lamine Yamal"),
+    ("URU", "Uruguai",    "Federico Valverde"),
+    ("USA", "EUA",        "Christian Pulisic"),
+]
+
+LEGENDS_VARIAÇÕES = ["normal", "bronze", "prata", "ouro"]
+
+LEGENDS_COR = {
+    "normal": ("#6B7280", "#F3F4F6"),   # cinza
+    "bronze": ("#92400E", "#FEF3C7"),   # bronze
+    "prata":  ("#374151", "#E5E7EB"),   # prata
+    "ouro":   ("#92400E", "#FEF9C3"),   # ouro
+}
+
+LEGENDS_EMOJI = {
+    "normal": "⚪",
+    "bronze": "🥉",
+    "prata":  "🥈",
+    "ouro":   "🥇",
+}
+
+# ---------------------------------------------------------------------------
 # Mapeamento posição sequencial → código
 # ---------------------------------------------------------------------------
 
