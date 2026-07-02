@@ -106,8 +106,14 @@ Essa regra vale para qualquer grade de itens no app.
 
 ## Aba Legends — detalhes
 - 20 jogadores × 4 variações = **80 combinações** rastreadas individualmente
-- Variações: 🟣 Normal / 🥉 Bronze / 🥈 Prata / 🥇 Ouro — cada uma com cor e emoji próprios definidos em `LEGENDS_COR` e `LEGENDS_EMOJI` em `logic.py`
-- Status (faltante/tenho/repetida) persistido na aba **"Legends"** do Google Sheets — criada automaticamente na primeira abertura via `get_worksheet_legends()`
+- Variações com cores distintas (definidas em `LEGENDS_COR` e `LEGENDS_EMOJI` em `logic.py`):
+  - 🟣 Normal — fundo roxo claro `#EDE9FE`, texto `#6D28D9`
+  - 🥉 Bronze — fundo laranja-acastanhado `#FDDCB5`, texto `#7C3A10`
+  - 🥈 Prata — fundo cinza claro `#E5E7EB`, texto `#374151`
+  - 🥇 Ouro — fundo amarelo claro `#FEF9C3`, texto `#854D0E`
+- Card exibe apenas emoji + nome da variação; o botão destacado (primary) indica o status atual
+- Botões por variação: 🟢 Tenho / 🟡 Repetida / 🔴 Faltante
+- Status persistido na aba **"Legends"** do Google Sheets — criada automaticamente na primeira abertura via `get_worksheet_legends()`
 - Barra de progresso global + expander por jogador com bandeira e contador de variações
 - Fonte: [paninigroup.com/ExtraStickers](https://www.paninigroup.com/ExtraStickers)
 
@@ -169,10 +175,12 @@ pytest tests/test_logic.py -v
 
 Funções e constantes cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote`, `LEGENDS`/`LEGENDS_VARIAÇÕES`/`LEGENDS_COR`/`LEGENDS_EMOJI` — **68 testes** no total.
 
-**Regras de desenvolvimento:**
-- Toda alteração de código deve ser acompanhada de testes unitários quando a lógica alterada for testável (funções puras em `logic.py`)
-- Antes de qualquer push para produção, rodar os testes e garantir que todos passam
-- Novas funções puras devem ser adicionadas em `logic.py`, não em `streamlit_app.py`
+**Regras de desenvolvimento — obrigatórias em toda alteração:**
+- Avaliar se a mudança introduz lógica testável em `logic.py` — se sim, criar testes unitários antes do commit
+- Rodar `pytest tests/test_logic.py -q` e garantir 100% verde antes de qualquer push
+- Atualizar este CLAUDE.md refletindo qualquer mudança de comportamento, nova feature, decisão de design ou lição aprendida — sem esperar o usuário pedir
+- Novas funções puras devem ir para `logic.py`, nunca para `streamlit_app.py`
+- Mudanças puramente visuais (CSS, cores, layout) não exigem testes unitários, mas exigem atualização do CLAUDE.md se afetarem comportamento documentado
 
 ## Regras importantes
 - Nunca sobrescrever `album.csv` se já existir com dados reais
