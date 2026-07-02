@@ -462,13 +462,13 @@ with tab_resumo:
     st.subheader("Seções especiais")
 
     _especiais = [
-        ("📖 Introdução",          df[df["Codigo"] == "00"]),
-        ("⭐ FWC — Host Countries", df[df["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]),
-        ("🏆 FWC — History",       df[df["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]),
-        ("🥤 Coca-Cola",           df[df["Codigo"].str.startswith("CC", na=False)]),
+        ("📖 Introdução",          "_INTRO_",    df[df["Codigo"] == "00"]),
+        ("⭐ FWC — Host Countries", "_FWC_HOST_", df[df["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]),
+        ("🏆 FWC — History",       "_FWC_HIST_", df[df["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]),
+        ("🥤 Coca-Cola",           "_CC_",       df[df["Codigo"].str.startswith("CC", na=False)]),
     ]
 
-    for _label, _df_esp in _especiais:
+    for _label, _key_esp, _df_esp in _especiais:
         if _df_esp.empty:
             continue
         _tenho_esp = int(_df_esp["Status"].isin(["tenho", "repetida"]).sum())
@@ -477,12 +477,13 @@ with tab_resumo:
         _ck_esp = " ✅" if _tenho_esp == _total_esp else ""
         _col_btn, _col_bar = st.columns([2, 3])
         with _col_btn:
-            st.button(
+            if st.button(
                 f"{_label}{_ck_esp}",
-                key=f"resumo_esp_{_label}",
+                key=f"resumo_esp_{_key_esp}",
                 use_container_width=True,
-                disabled=True,
-            )
+            ):
+                st.session_state.time_sel = _key_esp
+                st.info(f"**{_label}** selecionado — vá para a aba **Por Time** para ver e editar.")
         with _col_bar:
             st.markdown(
                 f"<div style='display:flex;align-items:center;gap:8px;height:38px;'>"
