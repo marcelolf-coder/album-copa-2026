@@ -141,6 +141,19 @@ ARG 🇦🇷: 4, 13, 17
 ```
 Times ordenados conforme a ordem do álbum. FWC usa 🏆, times usam bandeira do país.
 
+### Formato da mensagem WhatsApp — Trocas (sub-aba Trocas)
+Após verificar o que pode oferecer, um botão "Enviar oferta pelo WhatsApp" gera:
+```
+Figurinhas App - Lista
+Eua Méx Can 26
+
+Posso oferecer
+FWC 🏆: 2, 3
+BRA 🇧🇷: 1, 5
+ARG 🇦🇷: 4
+```
+Usa `_texto_whatsapp_trocas(posso_oferecer)` em `logic.py`. A seção se chama "Posso oferecer" (não "Repetidas") para contextualizar a troca. Resultado persistido em `st.session_state["troca_wpp_df"]` para o botão renderizar após o clique em "Ver trocas possíveis".
+
 ### Implementação do botão WhatsApp — lições aprendidas
 - `st.link_button` com `wa.me/?text=` não abre seletor de contatos no mobile
 - `navigator.share()` dentro de iframe falha: sandboxado
@@ -176,7 +189,7 @@ Os testes cobrem toda a lógica de negócio em `logic.py` e rodam sem Google She
 pytest tests/test_logic.py -v
 ```
 
-Funções e constantes cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote`, `LEGENDS`/`LEGENDS_VARIAÇÕES`/`LEGENDS_COR`/`LEGENDS_EMOJI` — **68 testes** no total.
+Funções e constantes cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_texto_whatsapp_trocas`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote`, `LEGENDS`/`LEGENDS_VARIAÇÕES`/`LEGENDS_COR`/`LEGENDS_EMOJI` — **76 testes** no total.
 
 **Regras de desenvolvimento — obrigatórias em toda alteração:**
 - Avaliar se a mudança introduz lógica testável em `logic.py` — se sim, criar testes unitários antes do commit

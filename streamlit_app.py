@@ -30,7 +30,7 @@ from logic import (
     BANDEIRAS, PAIS_ALIAS, TEAMS, FWC_CODES, _FLAG_BY_PREFIX,
     LEGENDS, LEGENDS_VARIAÇÕES, LEGENDS_COR, LEGENDS_EMOJI,
     build_map, pais_label,
-    _texto_whatsapp, _html_impressao,
+    _texto_whatsapp, _texto_whatsapp_trocas, _html_impressao,
     _pre_processar, _extrair_codigos,
     _classificar_pacote, _parsear_entrada_pacote,
 )
@@ -1120,6 +1120,21 @@ with tab_listas:
                         for _, fig in posso_oferecer.iterrows()
                     ]
                     st.code("\n".join(linhas), language=None)
+                    st.session_state["troca_wpp_df"] = posso_oferecer
+
+                if not posso_oferecer.empty and "troca_wpp_df" in st.session_state:
+                    _wpp_df = st.session_state["troca_wpp_df"]
+                    _texto_troca = _texto_whatsapp_trocas(_wpp_df)
+                    _texto_troca_json = json.dumps(_texto_troca)
+                    st.iframe(f"""
+<script>var WPP_TEXT = {_texto_troca_json};</script>
+<button onclick="window.parent.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(WPP_TEXT), '_blank')"
+  style="width:100%; padding:0.55rem 1rem; font-size:1rem; font-weight:600;
+         background:#25D366; color:#FFFFFF; border:none; border-radius:8px; cursor:pointer;">
+  💬 Enviar oferta pelo WhatsApp
+</button>
+""", height=52)
+                    st.caption("Abre o WhatsApp com a lista de figurinhas que você pode oferecer.")
 
 
 # ── Legends ───────────────────────────────────────────────────────────────────

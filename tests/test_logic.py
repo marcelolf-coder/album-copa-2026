@@ -10,6 +10,7 @@ from logic import (
     build_map,
     pais_label,
     _texto_whatsapp,
+    _texto_whatsapp_trocas,
     _html_impressao,
     _extrair_codigos,
     _classificar_pacote,
@@ -143,6 +144,57 @@ class TestTextoWhatsapp:
         txt = _texto_whatsapp(FALTANTES_SIMPLES, REPETIDAS_SIMPLES, True, True)
         assert "Faltantes" in txt
         assert "Repetidas" in txt
+
+
+# ---------------------------------------------------------------------------
+# _texto_whatsapp_trocas
+# ---------------------------------------------------------------------------
+
+OFERTA_SIMPLES = _make_df([
+    ("BRA1", "Brasil", "Alisson", "repetida", 2),
+    ("MEX3", "México", "Ochoa", "repetida", 1),
+    ("FWC2", "FWC", "FWC 2", "repetida", 1),
+])
+
+
+class TestTextoWhatsappTrocas:
+    def test_cabecalho_presente(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        assert "Figurinhas App - Lista" in txt
+        assert "Eua Méx Can 26" in txt
+
+    def test_secao_posso_oferecer(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        assert "Posso oferecer" in txt
+
+    def test_sem_secao_faltantes_ou_repetidas(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        assert "Faltantes" not in txt
+        assert "Repetidas" not in txt
+
+    def test_brasil_com_bandeira(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        assert "🇧🇷" in txt
+
+    def test_fwc_com_trofeu(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        assert "🏆" in txt
+
+    def test_ordem_fwc_antes_times(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        pos_fwc = txt.find("FWC")
+        pos_bra = txt.find("BRA")
+        assert pos_fwc < pos_bra
+
+    def test_numeros_corretos(self):
+        txt = _texto_whatsapp_trocas(OFERTA_SIMPLES)
+        assert "BRA 🇧🇷: 1" in txt
+        assert "MEX 🇲🇽: 3" in txt
+
+    def test_df_vazio_sem_secao(self):
+        txt = _texto_whatsapp_trocas(VAZIO)
+        assert "Posso oferecer" not in txt
+        assert isinstance(txt, str)
 
 
 # ---------------------------------------------------------------------------

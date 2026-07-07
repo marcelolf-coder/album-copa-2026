@@ -70,6 +70,39 @@ FWC_CODES = [f"FWC{i}" for i in range(1, 20)]
 
 _FLAG_BY_PREFIX = {prefix: BANDEIRAS.get(nome, "") for prefix, nome in TEAMS}
 
+
+def _wpp_numeros_por_prefix(df_part: pd.DataFrame) -> dict:
+    """Agrupa figurinhas por prefixo na ordem de TEAMS para mensagens WhatsApp."""
+    result = {}
+    fwc_nums = []
+    for _, row in df_part.iterrows():
+        codigo = str(row["Codigo"])
+        if codigo.startswith("FWC"):
+            try:
+                fwc_nums.append(int(codigo[3:]))
+            except ValueError:
+                pass
+        else:
+            m = re.match(r'^([A-Z]+)(\d+)$', codigo)
+            if m:
+                pref, num = m.group(1), int(m.group(2))
+                result.setdefault(pref, []).append(num)
+    ordered = {}
+    if fwc_nums:
+        ordered["FWC"] = sorted(fwc_nums)
+    for prefix, _ in TEAMS:
+        if prefix in result:
+            ordered[prefix] = sorted(result[prefix])
+    return ordered
+
+
+def _wpp_linha(pref: str, nums: list) -> str:
+    """Formata uma linha WhatsApp: 'BRA 🇧🇷: 1, 2, 3'."""
+    flag = "🏆" if pref == "FWC" else _FLAG_BY_PREFIX.get(pref, "")
+    sep = " " if flag else ""
+    return f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}"
+
+
 _CODIGO_RE = re.compile(
     r'\b(FWC|CC|ALG|ARG|AUS|AUT|BEL|BIH|BRA|CAN|CIV|COD|COL|CPV|CRO|CUW|CZE|'
     r'ECU|EGY|ENG|ESP|FRA|GER|GHA|HAI|IRN|IRQ|JOR|JPN|KOR|KSA|MAR|MEX|NED|'
@@ -153,45 +186,27 @@ def _texto_whatsapp(faltantes: pd.DataFrame, repetidas: pd.DataFrame,
                     incluir_faltantes: bool, incluir_trocas: bool) -> str:
     linhas = ["Figurinhas App - Lista", "Eua Méx Can 26", ""]
 
-    def _numeros_por_prefix(df_part: pd.DataFrame) -> dict:
-        result = {}
-        fwc_nums = []
-        for _, row in df_part.iterrows():
-            codigo = str(row["Codigo"])
-            if codigo.startswith("FWC"):
-                try:
-                    fwc_nums.append(int(codigo[3:]))
-                except ValueError:
-                    pass
-            else:
-                m = re.match(r'^([A-Z]+)(\d+)$', codigo)
-                if m:
-                    pref, num = m.group(1), int(m.group(2))
-                    result.setdefault(pref, []).append(num)
-        ordered = {}
-        if fwc_nums:
-            ordered["FWC"] = sorted(fwc_nums)
-        for prefix, _ in TEAMS:
-            if prefix in result:
-                ordered[prefix] = sorted(result[prefix])
-        return ordered
-
-    def _linha(pref, nums):
-        flag = "🏆" if pref == "FWC" else _FLAG_BY_PREFIX.get(pref, "")
-        sep = " " if flag else ""
-        return f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}"
-
     if incluir_faltantes and not faltantes.empty:
         linhas.append("Faltantes")
-        for pref, nums in _numeros_por_prefix(faltantes).items():
-            linhas.append(_linha(pref, nums))
+        for pref, nums in _wpp_numeros_por_prefix(faltantes).items():
+            linhas.append(_wpp_linha(pref, nums))
         linhas.append("")
 
     if incluir_trocas and not repetidas.empty:
         linhas.append("Repetidas")
-        for pref, nums in _numeros_por_prefix(repetidas).items():
-            linhas.append(_linha(pref, nums))
+        for pref, nums in _wpp_numeros_por_prefix(repetidas).items():
+            linhas.append(_wpp_linha(pref, nums))
 
+    return "\n".join(linhas)
+
+
+def _texto_whatsapp_trocas(posso_oferecer: pd.DataFrame) -> str:
+    """Gera mensagem WhatsApp com as figurinhas que posso oferecer em troca."""
+    linhas = ["Figurinhas App - Lista", "Eua Méx Can 26", ""]
+    if not posso_oferecer.empty:
+        linhas.append("Posso oferecer")
+        for pref, nums in _wpp_numeros_por_prefix(posso_oferecer).items():
+            linhas.append(_wpp_linha(pref, nums))
     return "\n".join(linhas)
 
 
