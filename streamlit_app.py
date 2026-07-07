@@ -596,7 +596,9 @@ with tab_resumo:
 
 
 # ── Por Time ─────────────────────────────────────────────────────────────────
-with tab_time:
+
+@st.fragment
+def _render_tab_time():
     df = load_df()
     _excluir_especiais = (
         df["Codigo"].str.startswith("FWC", na=False) |
@@ -636,7 +638,7 @@ with tab_time:
                 key="card_intro",
             ):
                 st.session_state.time_sel = "_INTRO_"
-                st.rerun()
+                st.rerun(scope="fragment")
         with col_fwc_host:
             if st.button(
                 f"⭐ FWC — Host Countries  {fwc_host_tenho}/{fwc_host_total}{fwc_host_check}",
@@ -644,7 +646,7 @@ with tab_time:
                 key="card_fwc_host",
             ):
                 st.session_state.time_sel = "_FWC_HOST_"
-                st.rerun()
+                st.rerun(scope="fragment")
 
         st.write("")
 
@@ -662,7 +664,7 @@ with tab_time:
                         use_container_width=True,
                     ):
                         st.session_state.time_sel = pais
-                        st.rerun()
+                        st.rerun(scope="fragment")
 
         st.write("")
 
@@ -685,7 +687,7 @@ with tab_time:
                 key="card_fwc_hist",
             ):
                 st.session_state.time_sel = "_FWC_HIST_"
-                st.rerun()
+                st.rerun(scope="fragment")
         with col_cc:
             if st.button(
                 f"🥤 Coca-Cola  {cc_tenho}/{cc_total}{cc_check}",
@@ -693,7 +695,7 @@ with tab_time:
                 key="card_cc",
             ):
                 st.session_state.time_sel = "_CC_"
-                st.rerun()
+                st.rerun(scope="fragment")
 
     else:
         # ── Detalhe do time ──────────────────────────────────────────────────
@@ -715,17 +717,17 @@ with tab_time:
         with col_voltar:
             if st.button("← Lista", key="voltar_time", use_container_width=True):
                 st.session_state.time_sel = None
-                st.rerun()
+                st.rerun(scope="fragment")
         with col_ant:
             if _anterior is not None:
                 if st.button(f"← {_label_secao(_anterior)}", key="ant_time", use_container_width=True):
                     st.session_state.time_sel = _anterior
-                    st.rerun()
+                    st.rerun(scope="fragment")
         with col_prox:
             if _proximo is not None:
                 if st.button(f"{_label_secao(_proximo)} →", key="prox_time", use_container_width=True):
                     st.session_state.time_sel = _proximo
-                    st.rerun()
+                    st.rerun(scope="fragment")
 
         if escolha == "_INTRO_":
             time_df = df[df["Codigo"] == "00"].copy()
@@ -787,7 +789,7 @@ with tab_time:
                         with c_menos:
                             if st.button("−", key=f"menos_{fig['Codigo']}", use_container_width=True):
                                 st.session_state[reps_key] = max(1, qtd - 1)
-                                st.rerun()
+                                st.rerun(scope="fragment")
                         with c_qtd:
                             st.markdown(
                                 f"<div style='text-align:center;font-size:0.85rem;padding-top:6px'>"
@@ -797,7 +799,7 @@ with tab_time:
                         with c_mais:
                             if st.button("+", key=f"mais_{fig['Codigo']}", use_container_width=True):
                                 st.session_state[reps_key] = qtd + 1
-                                st.rerun()
+                                st.rerun(scope="fragment")
                         novas_reps = st.session_state[reps_key]
                     else:
                         if reps_key in st.session_state:
@@ -826,7 +828,11 @@ with tab_time:
             if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
                 st.balloons()
             st.success("Salvo!")
-            st.rerun()
+            st.rerun(scope="fragment")
+
+
+with tab_time:
+    _render_tab_time()
 
 
 # ── Busca ─────────────────────────────────────────────────────────────────────

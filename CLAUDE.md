@@ -81,6 +81,7 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 - Grid inicial mostra todas as seleções em **ordem alfabética sem considerar acentos** (ex: África do Sul, Alemanha, Arábia Saudita...)
 - Seções especiais (Introdução, FWC Host Countries, FWC History, Coca-Cola) ficam fora do grid alfabético — Introdução e FWC Host no topo, FWC History e Coca-Cola no rodapé
 - Ao entrar em uma seleção, as setas ← → navegam na **ordem do álbum** (TEAMS order), não na ordem alfabética do grid
+- Todo o conteúdo da aba está envolvido em `@st.fragment` (função `_render_tab_time`) — isso garante que interações com widgets (selectbox de status, botões +/−, salvar, navegar) disparam apenas um **rerun parcial** do fragment, sem resetar a aba ativa. Todos os `st.rerun()` internos usam `scope="fragment"`.
 
 ### Grid mobile — lição aprendida
 Um único `st.columns(3)` para todos os N itens faz o Streamlit empilhar as colunas inteiras no mobile: todos os itens da coluna 0 primeiro, depois coluna 1, depois coluna 2 — quebrando a ordem visual. A solução correta é criar um novo `st.columns(3)` **por linha de 3 itens**:
