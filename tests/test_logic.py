@@ -354,6 +354,50 @@ class TestParsearEntradaPacote:
         assert len(nums) == 1
         assert inv == []
 
+    def test_formato_whatsapp_linha_unica(self):
+        # "MEX 🇲🇽: 3, 9, 11" deve resolver BRA3, BRA9, BRA11
+        nums, inv = self._parse("MEX 🇲🇽: 3, 9, 11")
+        codigos = {self.num_map[n] for n in nums}
+        assert "MEX3" in codigos
+        assert "MEX9" in codigos
+        assert "MEX11" in codigos
+        assert inv == []
+
+    def test_formato_whatsapp_fwc(self):
+        nums, inv = self._parse("FWC 🏆: 2, 3, 4")
+        codigos = {self.num_map[n] for n in nums}
+        assert "FWC2" in codigos
+        assert "FWC3" in codigos
+        assert "FWC4" in codigos
+        assert inv == []
+
+    def test_formato_whatsapp_multiplas_linhas(self):
+        entrada = "MEX 🇲🇽: 3, 9\nBRA 🇧🇷: 1, 5"
+        nums, inv = self._parse(entrada)
+        codigos = {self.num_map[n] for n in nums}
+        assert "MEX3" in codigos
+        assert "MEX9" in codigos
+        assert "BRA1" in codigos
+        assert "BRA5" in codigos
+        assert inv == []
+
+    def test_formato_whatsapp_ignora_cabecalho(self):
+        # Linhas de cabeçalho ("Figurinhas App", "Faltantes") devem ir para invalidos
+        # mas os dados válidos devem ser extraídos
+        entrada = "Faltantes\nBRA 🇧🇷: 1, 5"
+        nums, inv = self._parse(entrada)
+        codigos = {self.num_map[n] for n in nums}
+        assert "BRA1" in codigos
+        assert "BRA5" in codigos
+
+    def test_formato_whatsapp_misturado_com_codigos_soltos(self):
+        entrada = "MEX 🇲🇽: 3, 9\nBRA5"
+        nums, inv = self._parse(entrada)
+        codigos = {self.num_map[n] for n in nums}
+        assert "MEX3" in codigos
+        assert "BRA5" in codigos
+        assert inv == []
+
 
 # ---------------------------------------------------------------------------
 # _classificar_pacote

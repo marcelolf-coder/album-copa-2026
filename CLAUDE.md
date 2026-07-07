@@ -99,6 +99,7 @@ Essa regra vale para qualquer grade de itens no app.
 - Fluxo em dois passos: **Verificar** → preview categorizado (novas / já coletadas / repetidas / não reconhecidos) → **Confirmar e salvar**
 - "Já coletadas" = figurinhas que já eram `tenho` e passarão para `repetida` — o preview avisa antes de sobrescrever
 - Parser: `_parsear_entrada_pacote(texto, num_map, codigos_validos)` em `logic.py`
+- Aceita também o **formato WhatsApp**: `MEX 🇲🇽: 3, 9, 11` ou `FWC 🏆: 2, 3` — permite colar diretamente a lista exportada pelo app na sub-aba Trocas
 - Classificação: `_classificar_pacote(numeros, num_map, status_map)` em `logic.py`
 
 ## Aba Scanner — detalhes
@@ -189,7 +190,7 @@ Os testes cobrem toda a lógica de negócio em `logic.py` e rodam sem Google She
 pytest tests/test_logic.py -v
 ```
 
-Funções e constantes cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_texto_whatsapp_trocas`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote`, `LEGENDS`/`LEGENDS_VARIAÇÕES`/`LEGENDS_COR`/`LEGENDS_EMOJI` — **76 testes** no total.
+Funções e constantes cobertas: `build_map`, `pais_label`, `_texto_whatsapp`, `_texto_whatsapp_trocas`, `_html_impressao`, `_extrair_codigos`, `_classificar_pacote`, `_formatar_lista_repetidas`, `_parsear_entrada_pacote`, `LEGENDS`/`LEGENDS_VARIAÇÕES`/`LEGENDS_COR`/`LEGENDS_EMOJI` — **81 testes** no total.
 
 **Regras de desenvolvimento — obrigatórias em toda alteração:**
 - Avaliar se a mudança introduz lógica testável em `logic.py` — se sim, criar testes unitários antes do commit

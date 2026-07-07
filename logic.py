@@ -103,6 +103,11 @@ def _wpp_linha(pref: str, nums: list) -> str:
     return f"{pref}{sep}{flag}: {', '.join(str(n) for n in nums)}"
 
 
+_WPP_LINE_RE = re.compile(
+    r'^([A-Z]{2,3})\b[^:]*:\s*([\d,\s]+)$',
+    re.IGNORECASE,
+)
+
 _CODIGO_RE = re.compile(
     r'\b(FWC|CC|ALG|ARG|AUS|AUT|BEL|BIH|BRA|CAN|CIV|COD|COL|CPV|CRO|CUW|CZE|'
     r'ECU|EGY|ENG|ESP|FRA|GER|GHA|HAI|IRN|IRQ|JOR|JPN|KOR|KSA|MAR|MEX|NED|'
@@ -333,48 +338,69 @@ def _extrair_codigos(foto, codigos_validos: set, ocr) -> list:
 
 def _parsear_entrada_pacote(texto: str, num_map: dict, codigos_validos: set) -> tuple:
     """
-    Interpreta a entrada do pacote aceitando números sequenciais (182) ou códigos (BRA3, BRA 3).
+    Interpreta a entrada aceitando:
+    - Números sequenciais: "182"
+    - Códigos soltos: "BRA3", "BRA 3"
+    - Formato WhatsApp: "MEX 🇲🇽: 3, 9, 11" ou "FWC 🏆: 2, 3"
+      (prefixo + qualquer coisa + dois-pontos + lista de números)
 
     Retorna: (numeros_seq: list[int], invalidos: list[str])
-      - numeros_seq: posições sequenciais resolvidas (para passar a _classificar_pacote)
-      - invalidos: tokens que não foram reconhecidos
     """
     num_map_inv = {v: k for k, v in num_map.items()}
-    tokens = re.split(r"[\s,\n]+", texto.strip())
-
     numeros_seq = []
     invalidos = []
 
-    i = 0
-    while i < len(tokens):
-        token = tokens[i].strip().upper()
-        if not token:
-            i += 1
+    for linha in texto.splitlines():
+        linha_strip = linha.strip()
+        if not linha_strip:
             continue
 
-        # Número sequencial puro: "182"
-        if token.isdigit():
-            numeros_seq.append(int(token))
-            i += 1
+        # Tenta detectar linha no formato WhatsApp: "PREFIX ...: 1, 2, 3"
+        m = _WPP_LINE_RE.match(linha_strip)
+        if m:
+            prefix = m.group(1).upper()
+            nums_str = m.group(2)
+            for n_str in re.split(r"[\s,]+", nums_str):
+                n_str = n_str.strip()
+                if not n_str:
+                    continue
+                if n_str.isdigit():
+                    codigo = f"{prefix}{int(n_str)}"
+                    if codigo in codigos_validos:
+                        numeros_seq.append(num_map_inv[codigo])
+                    else:
+                        invalidos.append(f"{prefix}{n_str}")
             continue
 
-        # Código completo sem espaço: "BRA3"
-        if token in codigos_validos:
-            numeros_seq.append(num_map_inv[token])
-            i += 1
-            continue
-
-        # Código com espaço: "BRA" + "3" → "BRA3"
-        if i + 1 < len(tokens):
-            proximo = tokens[i + 1].strip()
-            junto = token + proximo
-            if junto in codigos_validos:
-                numeros_seq.append(num_map_inv[junto])
-                i += 2
+        # Linha normal: tokeniza e processa token a token
+        tokens = re.split(r"[\s,]+", linha_strip)
+        i = 0
+        while i < len(tokens):
+            token = tokens[i].strip().upper()
+            if not token:
+                i += 1
                 continue
 
-        invalidos.append(tokens[i])
-        i += 1
+            if token.isdigit():
+                numeros_seq.append(int(token))
+                i += 1
+                continue
+
+            if token in codigos_validos:
+                numeros_seq.append(num_map_inv[token])
+                i += 1
+                continue
+
+            if i + 1 < len(tokens):
+                proximo = tokens[i + 1].strip()
+                junto = token + proximo
+                if junto in codigos_validos:
+                    numeros_seq.append(num_map_inv[junto])
+                    i += 2
+                    continue
+
+            invalidos.append(tokens[i])
+            i += 1
 
     return numeros_seq, invalidos
 
