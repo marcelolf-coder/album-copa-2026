@@ -193,49 +193,7 @@ div[data-testid="column"] button[data-testid="baseButton-secondary"]:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# Injeta CSS de fundo branco diretamente no <head> via JS, garantindo que
-# nosso <style> fique SEMPRE POR ÚLTIMO na cascata.
-# MutationObserver reinsere o bloco toda vez que o Streamlit reinjectar
-# seu CSS de modo escuro, garantindo que nunca perdemos a disputa de cascata.
-streamlit_js_eval(js_expressions="""
-(function () {
-    try { localStorage.removeItem('stActiveTheme'); } catch (e) {}
-
-    var ID = 'copa-theme-override';
-    var CSS = [
-        'html,body{background-color:#FFFFFF!important;color:#1E293B!important}',
-        '.stApp{background-color:#FFFFFF!important;color:#1E293B!important}',
-        '[data-testid="stAppViewContainer"]{background-color:#FFFFFF!important}',
-        'section[data-testid="stMain"]{background-color:#FFFFFF!important}',
-        '[data-testid="stMainBlockContainer"]{background-color:#FFFFFF!important}',
-        '[data-testid="block-container"]{background-color:#FFFFFF!important}',
-        '[data-testid="stHeader"]{background-color:#FFFFFF!important}'
-    ].join('');
-
-    function inject() {
-        var old = document.getElementById(ID);
-        if (old) old.remove();
-        var s = document.createElement('style');
-        s.id = ID;
-        s.textContent = CSS;
-        (document.head || document.documentElement).appendChild(s);
-    }
-
-    inject();
-
-    new MutationObserver(function (mutations) {
-        for (var i = 0; i < mutations.length; i++) {
-            var nodes = mutations[i].addedNodes;
-            for (var j = 0; j < nodes.length; j++) {
-                if (nodes[j].tagName === 'STYLE' && nodes[j].id !== ID) {
-                    setTimeout(inject, 10);
-                    return;
-                }
-            }
-        }
-    }).observe(document.head || document.documentElement, { childList: true });
-})()
-""", key="force_light_theme")
+streamlit_js_eval(js_expressions="try { localStorage.removeItem('stActiveTheme'); } catch (e) {}", key="force_light_theme")
 
 # ---------------------------------------------------------------------------
 # Constantes de UI
@@ -596,9 +554,7 @@ with tab_resumo:
 
 
 # ── Por Time ─────────────────────────────────────────────────────────────────
-
-@st.fragment
-def _render_tab_time():
+with tab_time:
     df = load_df()
     _excluir_especiais = (
         df["Codigo"].str.startswith("FWC", na=False) |
@@ -638,7 +594,7 @@ def _render_tab_time():
                 key="card_intro",
             ):
                 st.session_state.time_sel = "_INTRO_"
-                st.rerun(scope="fragment")
+                st.rerun()
         with col_fwc_host:
             if st.button(
                 f"⭐ FWC — Host Countries  {fwc_host_tenho}/{fwc_host_total}{fwc_host_check}",
@@ -646,7 +602,7 @@ def _render_tab_time():
                 key="card_fwc_host",
             ):
                 st.session_state.time_sel = "_FWC_HOST_"
-                st.rerun(scope="fragment")
+                st.rerun()
 
         st.write("")
 
@@ -664,7 +620,7 @@ def _render_tab_time():
                         use_container_width=True,
                     ):
                         st.session_state.time_sel = pais
-                        st.rerun(scope="fragment")
+                        st.rerun()
 
         st.write("")
 
@@ -687,7 +643,7 @@ def _render_tab_time():
                 key="card_fwc_hist",
             ):
                 st.session_state.time_sel = "_FWC_HIST_"
-                st.rerun(scope="fragment")
+                st.rerun()
         with col_cc:
             if st.button(
                 f"🥤 Coca-Cola  {cc_tenho}/{cc_total}{cc_check}",
@@ -695,7 +651,7 @@ def _render_tab_time():
                 key="card_cc",
             ):
                 st.session_state.time_sel = "_CC_"
-                st.rerun(scope="fragment")
+                st.rerun()
 
     else:
         # ── Detalhe do time ──────────────────────────────────────────────────
@@ -717,17 +673,17 @@ def _render_tab_time():
         with col_voltar:
             if st.button("← Lista", key="voltar_time", use_container_width=True):
                 st.session_state.time_sel = None
-                st.rerun(scope="fragment")
+                st.rerun()
         with col_ant:
             if _anterior is not None:
                 if st.button(f"← {_label_secao(_anterior)}", key="ant_time", use_container_width=True):
                     st.session_state.time_sel = _anterior
-                    st.rerun(scope="fragment")
+                    st.rerun()
         with col_prox:
             if _proximo is not None:
                 if st.button(f"{_label_secao(_proximo)} →", key="prox_time", use_container_width=True):
                     st.session_state.time_sel = _proximo
-                    st.rerun(scope="fragment")
+                    st.rerun()
 
         if escolha == "_INTRO_":
             time_df = df[df["Codigo"] == "00"].copy()
@@ -759,80 +715,72 @@ def _render_tab_time():
         st.caption("Toque no ícone para alterar o status de cada figurinha.")
 
         prefix = f"grid_{escolha}_"
-        alteracoes: dict = {}
+        with st.form(key=f"form_{escolha}"):
+            alteracoes_form: dict = {}
 
-        chunks = [time_df.iloc[i: i + COLS_GRID] for i in range(0, len(time_df), COLS_GRID)]
-        for chunk in chunks:
-            cols = st.columns(COLS_GRID)
-            for col_i, (_, fig) in enumerate(chunk.iterrows()):
-                with cols[col_i]:
-                    key = f"{prefix}{fig['Codigo']}"
-                    reps_key = f"reps_{fig['Codigo']}"
-                    idx_atual = STATUS_OPTIONS.index(fig["Status"])
-                    novo = st.selectbox(
-                        fig["Codigo"],
-                        STATUS_OPTIONS,
-                        index=idx_atual,
-                        key=key,
-                        format_func=lambda s: STATUS_ICON[s],
-                    )
-                    nome = fig["Descricao"]
-                    if nome and nome not in ("nan", fig["Codigo"]):
-                        st.caption(nome)
+            chunks = [time_df.iloc[i: i + COLS_GRID] for i in range(0, len(time_df), COLS_GRID)]
+            for chunk in chunks:
+                cols = st.columns(COLS_GRID)
+                for col_i, (_, fig) in enumerate(chunk.iterrows()):
+                    with cols[col_i]:
+                        key = f"{prefix}{fig['Codigo']}"
+                        idx_atual = STATUS_OPTIONS.index(fig["Status"])
+                        novo = st.selectbox(
+                            fig["Codigo"],
+                            STATUS_OPTIONS,
+                            index=idx_atual,
+                            key=key,
+                            format_func=lambda s: STATUS_ICON[s],
+                        )
+                        nome = fig["Descricao"]
+                        if nome and nome not in ("nan", fig["Codigo"]):
+                            st.caption(nome)
 
-                    reps_atual = int(fig["Repetidas"])
-                    if novo == "repetida":
-                        if reps_key not in st.session_state:
-                            st.session_state[reps_key] = max(1, reps_atual)
-                        qtd = st.session_state[reps_key]
-                        c_menos, c_qtd, c_mais = st.columns([1, 1, 1])
-                        with c_menos:
-                            if st.button("−", key=f"menos_{fig['Codigo']}", use_container_width=True):
-                                st.session_state[reps_key] = max(1, qtd - 1)
-                                st.rerun(scope="fragment")
-                        with c_qtd:
-                            st.markdown(
-                                f"<div style='text-align:center;font-size:0.85rem;padding-top:6px'>"
-                                f"{st.session_state[reps_key]}x</div>",
-                                unsafe_allow_html=True,
+                        reps_atual = int(fig["Repetidas"])
+                        if novo == "repetida":
+                            novas_reps = st.number_input(
+                                "Qtd",
+                                min_value=1,
+                                value=max(1, reps_atual),
+                                step=1,
+                                key=f"reps_{fig['Codigo']}",
+                                label_visibility="collapsed",
                             )
-                        with c_mais:
-                            if st.button("+", key=f"mais_{fig['Codigo']}", use_container_width=True):
-                                st.session_state[reps_key] = qtd + 1
-                                st.rerun(scope="fragment")
-                        novas_reps = st.session_state[reps_key]
-                    else:
-                        if reps_key in st.session_state:
-                            del st.session_state[reps_key]
-                        novas_reps = reps_atual
+                        else:
+                            novas_reps = reps_atual
 
+            label = f"💾 Salvar"
+            submitted = st.form_submit_button(label, type="primary", use_container_width=True)
+
+        if submitted:
+            for chunk in [time_df.iloc[i: i + COLS_GRID] for i in range(0, len(time_df), COLS_GRID)]:
+                for _, fig in chunk.iterrows():
+                    key = f"{prefix}{fig['Codigo']}"
+                    novo = st.session_state.get(key, fig["Status"])
+                    reps_atual = int(fig["Repetidas"])
+                    novas_reps = int(st.session_state.get(f"reps_{fig['Codigo']}", reps_atual)) if novo == "repetida" else reps_atual
                     if novo != fig["Status"] or (novo == "repetida" and novas_reps != reps_atual):
-                        alteracoes[int(fig["_row"])] = (novo, novas_reps)
+                        alteracoes_form[int(fig["_row"])] = (novo, novas_reps)
 
-        label = f"💾 Salvar {len(alteracoes)} alteração(ões)" if alteracoes else "💾 Salvar"
-        if st.button(label, type="primary", use_container_width=True, key="salvar_time", disabled=not alteracoes):
-            updates = [(row, st_val, reps) for row, (st_val, reps) in alteracoes.items()]
-            with st.spinner("Salvando..."):
-                salvar(updates)
-            df_novo = load_df()
-            if escolha == "_INTRO_":
-                time_novo = df_novo[df_novo["Codigo"] == "00"]
-            elif escolha == "_FWC_HOST_":
-                time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]
-            elif escolha == "_FWC_HIST_":
-                time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]
-            elif escolha == "_CC_":
-                time_novo = df_novo[df_novo["Codigo"].str.startswith("CC", na=False)]
-            else:
-                time_novo = df_novo[df_novo["Pais"] == escolha]
-            if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
-                st.balloons()
-            st.success("Salvo!")
-            st.rerun(scope="fragment")
-
-
-with tab_time:
-    _render_tab_time()
+            if alteracoes_form:
+                updates = [(row, st_val, reps) for row, (st_val, reps) in alteracoes_form.items()]
+                with st.spinner("Salvando..."):
+                    salvar(updates)
+                df_novo = load_df()
+                if escolha == "_INTRO_":
+                    time_novo = df_novo[df_novo["Codigo"] == "00"]
+                elif escolha == "_FWC_HOST_":
+                    time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(1, 9)])]
+                elif escolha == "_FWC_HIST_":
+                    time_novo = df_novo[df_novo["Codigo"].isin([f"FWC{i}" for i in range(9, 20)])]
+                elif escolha == "_CC_":
+                    time_novo = df_novo[df_novo["Codigo"].str.startswith("CC", na=False)]
+                else:
+                    time_novo = df_novo[df_novo["Pais"] == escolha]
+                if time_novo["Status"].isin(["tenho", "repetida"]).sum() == len(time_novo):
+                    st.balloons()
+                st.success("Salvo!")
+            st.rerun()
 
 
 # ── Busca ─────────────────────────────────────────────────────────────────────
