@@ -990,7 +990,7 @@ with tab_listas:
     # window.parent.open() contorna o sandbox do iframe e abre no contexto do frame pai.
     # api.whatsapp.com/send?text= abre o seletor de contatos no WhatsApp mobile.
     # key no html garante que o componente é recriado ao mudar a seleção do radio.
-    st.iframe(f"""
+    st.components.v1.html(f"""
 <script>var WPP_TEXT = {texto_json};</script>
 <button onclick="window.parent.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(WPP_TEXT), '_blank')"
   style="width:100%; padding:0.55rem 1rem; font-size:1rem; font-weight:600;
@@ -1080,7 +1080,7 @@ with tab_listas:
                     _wpp_df = st.session_state["troca_wpp_df"]
                     _texto_troca = _texto_whatsapp_trocas(_wpp_df)
                     _texto_troca_json = json.dumps(_texto_troca)
-                    st.iframe(f"""
+                    st.components.v1.html(f"""
 <script>var WPP_TEXT = {_texto_troca_json};</script>
 <button onclick="window.parent.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(WPP_TEXT), '_blank')"
   style="width:100%; padding:0.55rem 1rem; font-size:1rem; font-weight:600;
