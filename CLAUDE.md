@@ -15,7 +15,7 @@ Gerenciador pessoal de figurinhas do álbum Panini FIFA World Cup 2026.
 pip install -r requirements.txt
 ```
 
-Bibliotecas principais: `streamlit`, `gspread`, `google-auth-oauthlib`, `pandas`, `rapidocr-onnxruntime`, `Pillow`, `numpy`, `streamlit-js-eval`.
+Bibliotecas principais: `streamlit==1.55.0`, `gspread`, `google-auth-oauthlib`, `pandas`, `rapidocr-onnxruntime`, `Pillow`, `numpy`, `streamlit-js-eval`.
 
 Python em uso no Windows: `C:\Users\marcelolf\AppData\Local\Programs\Python\Python314\python.exe`
 
@@ -56,7 +56,7 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 
 | Script | Uso |
 |---|---|
-| `streamlit_app.py` | App web mobile-friendly (6 abas) |
+| `streamlit_app.py` | App web mobile-friendly (7 abas) |
 | `_atualizar_batch.py` | Entrada de novas figurinhas por número sequencial |
 | `resumo.py` | Relatório CLI de progresso |
 | `imprimir.py` | Gera `album_impressao.html` para impressão |
@@ -81,7 +81,7 @@ Regra: qualquer função que não precise de `st.*` ou `gspread` deve estar em `
 - Grid inicial mostra todas as seleções em **ordem alfabética sem considerar acentos** (ex: África do Sul, Alemanha, Arábia Saudita...)
 - Seções especiais (Introdução, FWC Host Countries, FWC History, Coca-Cola) ficam fora do grid alfabético — Introdução e FWC Host no topo, FWC History e Coca-Cola no rodapé
 - Ao entrar em uma seleção, as setas ← → navegam na **ordem do álbum** (TEAMS order), não na ordem alfabética do grid
-- Todo o conteúdo da aba está envolvido em `@st.fragment` (função `_render_tab_time`) — isso garante que interações com widgets (selectbox de status, botões +/−, salvar, navegar) disparam apenas um **rerun parcial** do fragment, sem resetar a aba ativa. Todos os `st.rerun()` internos usam `scope="fragment"`.
+- O grid de figurinhas está envolvido em `st.form` — isso garante que interações com selectboxes **não disparam rerun**, apenas o clique em Salvar dispara. Os botões +/− de repetidas foram substituídos por `st.number_input` (botões não funcionam dentro de `st.form`).
 
 ### Grid mobile — lição aprendida
 Um único `st.columns(3)` para todos os N itens faz o Streamlit empilhar as colunas inteiras no mobile: todos os itens da coluna 0 primeiro, depois coluna 1, depois coluna 2 — quebrando a ordem visual. A solução correta é criar um novo `st.columns(3)` **por linha de 3 itens**:
@@ -118,7 +118,7 @@ Essa regra vale para qualquer grade de itens no app.
 - Status persistido em **dois lugares**: aba "Legends" do Google Sheets (criada automaticamente via `get_worksheet_legends()`) + `legends.csv` local (criado automaticamente, no `.gitignore`)
 - `load_legends()` tenta Sheets primeiro; se falhar (sem internet/credenciais), usa `legends.csv` como fallback
 - `salvar_legend()` grava nos dois sempre que possível
-- Barra de progresso global + expander por jogador com bandeira e contador de variações
+- Navegação: lista de jogadores (grid 2 colunas) → detalhe do jogador selecionado (mesmo padrão da aba Por Time) — evita renderizar todos os 240 botões de uma vez
 - Fonte: [paninigroup.com/ExtraStickers](https://www.paninigroup.com/ExtraStickers)
 
 ## Aba Listas — detalhes
@@ -161,10 +161,22 @@ Usa `_texto_whatsapp_trocas(posso_oferecer)` em `logic.py`. A seção se chama "
 - `navigator.share()` dentro de iframe falha: sandboxado
 - `postMessage` + `navigator.share()` falha: o gesto do usuário não sobrevive ao round-trip async
 - **Solução correta**: `window.parent.open()` chamado **diretamente no `onclick`** do botão HTML — contorna o sandbox do iframe, preserva o gesto do usuário, e funciona em mobile e desktop
-- Implementado via `st.iframe()` (substituto de `st.components.v1.html`, depreciado em Streamlit ≥ 1.58)
+- Implementado via `st.components.v1.html()` — `st.iframe()` não existe no Streamlit 1.55.0
 - URL: `api.whatsapp.com/send?text=` abre o seletor de contatos (melhor que `wa.me/?text=`)
 - Texto passado por `json.dumps()` no Python — preserva emojis de bandeira sem encoding quebrado
 - Emojis de bandeira de países **funcionam** no Android/iOS; no Windows aparecem como `?` (limitação do Segoe UI Emoji)
+
+## Versão do Streamlit — IMPORTANTE
+
+`requirements.txt` fixa `streamlit==1.55.0`. **Não atualizar sem testar.**
+
+### Por que 1.55.0
+O Streamlit 1.56.0 introduziu "st.tabs preserve open/closed state across reruns". Essa mudança causou um bug visual grave: ao interagir com qualquer widget dentro de um tab, **todos os tabs apareciam empilhados em scroll** na mesma página. O bug foi rastreado até um `MutationObserver` em JavaScript que reinjetava CSS customizado a cada mudança no `<head>`, interferindo com o `display:none` que o Streamlit usa para ocultar tabs inativos.
+
+**Solução aplicada:** remover o `MutationObserver` e fixar a versão em 1.55.0.
+
+### Nota sobre @st.fragment
+`@st.fragment` dentro de `st.tabs` causa bug visual no Streamlit 1.55+: o fragment renderiza fora do contexto do tab durante o rerun, empilhando conteúdo abaixo das abas. **Não usar `@st.fragment` em nenhuma aba.** Usar `st.form` para conter reruns de widgets.
 
 ## Deploy
 - Streamlit Cloud conectado ao repositório GitHub: `marcelolf-coder/album-copa-2026`
